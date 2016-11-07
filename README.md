@@ -1,9 +1,9 @@
-# LedgerLoops
-This repo contains:
+# LedgerLoops-WebCrypto
 
-* the html content of https://ledgerloops.com
-* the LaTeX source of the [LedgerLoops whitepaper (pdf)](https://ledgerloops.com/doc/whitepaper.pdf)
-* the browserify source of the [demo page](https://ledgerloops.com/demo.html)
+WebCrypto-based demo (not production-ready)
+
+
+This is the browserify source of the [demo page](https://ledgerloops.com/demo.html).
 
 The code in this repo is very much ripe for a rewrite from scratch ---
 it has served me well while developing the protocol, but it was never meant as
