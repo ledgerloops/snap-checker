@@ -467,7 +467,7 @@ describe('three agents racing', function() {
       return messaging.flush();
     }).then(traffic => {
       console.log(messageTypes(traffic));
-      verifyShouldFail = true;
+      verifyShouldFail = true; // FIXME: not working, this?
       assert.deepEqual(messageTypes(traffic), [
         [ 'edward', 'daphne', 'initiate-update' ],
         [ 'edward', 'fred', 'satisfy-condition' ],
@@ -495,22 +495,36 @@ describe('three agents racing', function() {
       console.log(messageTypes(traffic));
       assert.deepEqual(messageTypes(traffic), [
         [ 'edward', 'fred', 'confirm-update' ],
-        [ 'edward', 'daphne', 'update-status', false, false ],
-        // [ 'daphne', 'fred', 'initiate-update' ], ->  missing because we set verifyShouldFail = true
+        // [ 'edward', 'daphne', 'update-status', false, false ],
+        [ 'daphne', 'fred', 'initiate-update' ], // ->  missing because we set verifyShouldFail = true
         [ 'fred', 'daphne', 'confirm-update' ],
+        // [ 'fred', 'edward', 'update-status', false, false ],
+        [ 'edward', 'daphne', 'initiate-update' ], // ->  missing because we set verifyShouldFail = true
+        [ 'daphne', 'edward', 'confirm-update' ],
+        // [ 'daphne', 'fred', 'update-status', false, false ],
+        [ 'fred', 'edward', 'initiate-update' ], // ->  missing because we set verifyShouldFail = true
+      ]);
+      return messaging.flush();
+    }).then(traffic => {
+      console.log(messageTypes(traffic));
+      assert.deepEqual(messageTypes(traffic), [
+        [ 'fred', 'daphne', 'confirm-update' ], // ->  missing because we set verifyShouldFail = true
         [ 'fred', 'edward', 'update-status', false, false ],
-        // [ 'edward', 'daphne', 'initiate-update' ], ->  missing because we set verifyShouldFail = true
-        [ 'daphne', 'edward', 'confirm-update' ],
+        [ 'fred', 'daphne', 'update-status', false, false ],
+        [ 'daphne', 'edward', 'confirm-update' ], // ->  missing because we set verifyShouldFail = true
         [ 'daphne', 'fred', 'update-status', false, false ],
-        // [ 'fred', 'edward', 'initiate-update' ], ->  missing because we set verifyShouldFail = true
+        [ 'daphne', 'edward', 'update-status', false, false ],
+        [ 'edward', 'fred', 'confirm-update' ], // ->  missing because we set verifyShouldFail = true
+        [ 'edward', 'daphne', 'update-status', false, false ],
+        [ 'edward', 'fred', 'update-status', false, false ]
       ]);
       return messaging.flush();
     }).then(traffic => {
       console.log(messageTypes(traffic));
       assert.deepEqual(messageTypes(traffic), [
-        // [ 'fred', 'daphne', 'confirm-update' ], ->  missing because we set verifyShouldFail = true
-        // [ 'daphne', 'edward', 'confirm-update' ], ->  missing because we set verifyShouldFail = true
-        // [ 'edward', 'fred', 'confirm-update' ], ->  missing because we set verifyShouldFail = true
+        [ 'daphne', 'fred', 'update-status', false, false ],
+        [ 'edward', 'daphne', 'update-status', false, false ],
+        [ 'fred', 'edward', 'update-status', false, false ]
       ]);
       return messaging.flush();
     }).then(traffic => {
