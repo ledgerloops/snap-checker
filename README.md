@@ -5,7 +5,9 @@ WebCrypto-based demo (not production-ready)
 
 This is the browserify source of the [demo page](https://ledgerloops.com/demo.html).
 
-The code in this repo is very much ripe for a rewrite from scratch ---
+# Deprecated!
+
+I'm currently rewriting all of this from scratch ---
 it has served me well while developing the protocol, but it was never meant as
 more than a demo implementation for experimentation.
 
