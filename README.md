@@ -1,5 +1,7 @@
 # LedgerLoops
 
+For more info on [LedgerLoops](https://ledgerloops.com), see: https://ledgerloops.com
+
 An implementation of the current version of the LedgerLoops protocol, as described in the
 [whitepaper](https://ledgerloops.com/doc/whitepaper.pdf).
 
