@@ -14,3 +14,5 @@ Agent.prototype.addPeer = function(nick, sendToExternal) {
 Agent.prototype.getPeer = function(nick) {
   return this._peers[nick];
 };
+
+module.exports = Agent;
