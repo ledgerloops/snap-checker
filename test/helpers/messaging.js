@@ -1,6 +1,7 @@
 function Messaging() {
   this.queue = [];
   this._callbacks = {};
+  this.log = [];
 };
 
 Messaging.prototype.setCallback = function(nick, cb) {
@@ -8,6 +9,7 @@ Messaging.prototype.setCallback = function(nick, cb) {
 };
 
 Messaging.prototype.send = function(from, to, obj) {
+  this.log.push({ from, to, obj });
   this._callbacks[to](from, obj);
 };
 
