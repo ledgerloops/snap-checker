@@ -8,7 +8,7 @@ function Agent() {
 
 Agent.prototype.addPeer = function(myNick, theirNick, sendToExternal) {
   this._peers[theirNick] = new Peer(myNick, theirNick, sendToExternal,
-      this._routing.send, this._routing.updateNeighborStatus);
+      this._routing.send.bind(this._routing), this._routing.updateNeighborStatus.bind(this._routing));
 };
 
 Agent.prototype.getPeer = function(theirNick) {
