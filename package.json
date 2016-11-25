@@ -20,8 +20,7 @@
     "sinon": "^1.17.6"
   },
   "scripts": {
-    "test": "grunt test",
-    "build": "grunt build"
+    "test": "./node_modules/.bin/mocha test/integration"
   },
   "testling": {
     "harness": "mocha-tdd",
