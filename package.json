@@ -1,7 +1,7 @@
 {
   "name": "ledgerloops",
-  "version": "0.4.0",
-  "description": "Cryptographically-triggered IOUs make the world go round",
+  "version": "0.4.1",
+  "description": "https://ledgerloops.com/ - Cryptographically-triggered IOUs make the world go round",
   "main": "index.js",
   "directories": {
     "test": "test"
@@ -20,8 +20,7 @@
     "sinon": "^1.17.6"
   },
   "scripts": {
-    "test": "grunt test",
-    "build": "grunt build"
+    "test": "./node_modules/.bin/mocha test/integration"
   },
   "testling": {
     "harness": "mocha-tdd",

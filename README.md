@@ -1,21 +1,12 @@
-# LedgerLoops-WebCrypto
+# LedgerLoops
 
-WebCrypto-based demo (not production-ready)
+For more info on [LedgerLoops](https://ledgerloops.com), see: https://ledgerloops.com
 
-
-This is the browserify source of the [demo page](https://ledgerloops.com/demo.html).
-
-# Deprecated!
-
-I'm currently rewriting all of this from scratch ---
-it has served me well while developing the protocol, but it was never meant as
-more than a demo implementation for experimentation.
-
-The real product, so far, of this research project is the current version of the LedgerLoops protocol, as described in the
+An implementation of the current version of the LedgerLoops protocol, as described in the
 [whitepaper](https://ledgerloops.com/doc/whitepaper.pdf).
 
 
-[![Build Status](https://img.shields.io/travis/michielbdejong/ledgerloops.svg?style=flat)](http://travis-ci.org/michielbdejong/ledgerloops)
+[![Build Status](https://img.shields.io/travis/ledgerloops/ledgerloops.svg?style=flat)](http://travis-ci.org/ledgerloops/ledgerloops)
 
 ![Testling](https://ci.testling.com/michielbdejong/ledgerloops.png)
 
