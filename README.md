@@ -1,21 +1,16 @@
-# LedgerLoops-WebCrypto
+Simulator of how circular currents can find a globally optimal distribution of debt.
 
-WebCrypto-based demo (not production-ready)
+Each node in the network represents a person.
+Each edge represents an account between two persons.
 
+Each account has a maximum debt in each direction, and a current debt that can be positive, zero, or negative.
 
-This is the browserify source of the [demo page](https://ledgerloops.com/demo.html).
+The goal of the algorithm is to reduce the sum of the absolute debt values. For instance, say:
 
-# Deprecated!
+Alice owes Bob between -7 and +7, currently +7
+Alice owes Charlie between -7 and +7, currently -5
+Bob owes Charlie between -7 and +7, currently +3
 
-I'm currently rewriting all of this from scratch ---
-it has served me well while developing the protocol, but it was never meant as
-more than a demo implementation for experimentation.
-
-The real product, so far, of this research project is the current version of the LedgerLoops protocol, as described in the
-[whitepaper](https://ledgerloops.com/doc/whitepaper.pdf).
-
-
-[![Build Status](https://img.shields.io/travis/michielbdejong/ledgerloops.svg?style=flat)](http://travis-ci.org/michielbdejong/ledgerloops)
-
-![Testling](https://ci.testling.com/michielbdejong/ledgerloops.png)
-
+Then the total absolute debt is `abs(7) + abs(-5) + abs(3) = 15`.
+If Alice pays Bob 2, Bob pays Charlie 2, and Charlie pays Alice 2, the sum of absolute debts is reduced to:
+`abs(5) + abs(-7) + abs(1) = 13`, so that's an improvement.
