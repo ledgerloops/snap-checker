@@ -15,11 +15,11 @@ debug.setLevel(true);
 
 messaging.autoFlush();
 
-function sendIOU(from, to, amount, currency) {
+function sendAdd(from, to, amount, currency) {
   [from, to].map(nick => {
     ensureAgent(nick);
   });
-  agents[from].sendIOU(to, amount, currency);
+  agents[from].sendAdd(to, amount, currency);
 }
 
 if (typeof window !== 'undefined') {
@@ -61,7 +61,7 @@ function sendButton(amount) {
   if (from === to) {
     window.alert('Receiver nick should be different from sender nick');
   } else {
-    sendIOU(from, to, amount, 'USD');
+    sendAdd(from, to, amount, 'USD');
   }
 }
 
@@ -119,7 +119,7 @@ document.getElementById('send-100').onclick = function() {
 };
 
 var initialAgents = pickAgents(3);
-sendIOU(initialAgents[0], initialAgents[1], 1, 'USD');
-sendIOU(initialAgents[1], initialAgents[2], 1, 'USD');
-sendIOU(initialAgents[2], initialAgents[0], 1, 'USD');
+sendAdd(initialAgents[0], initialAgents[1], 1, 'USD');
+sendAdd(initialAgents[1], initialAgents[2], 1, 'USD');
+sendAdd(initialAgents[2], initialAgents[0], 1, 'USD');
 setInterval(displayAgents, 1000);

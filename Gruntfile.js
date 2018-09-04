@@ -29,12 +29,19 @@ module.exports = function(grunt) {
         dest: 'js/bundle.js',
       }
     },
+    watch: {
+      js: {
+        files: ['src/*.js'],
+        tasks: ['build']
+      }
+    }
   });
 
   // Load plugins
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-mocha-test');
   grunt.loadNpmTasks('grunt-browserify');
+  grunt.loadNpmTasks('grunt-contrib-watch');
  
   // Default task(s).
   grunt.registerTask('test', ['jshint', 'mochaTest']);
