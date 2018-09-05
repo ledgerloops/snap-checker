@@ -15,11 +15,11 @@ debug.setLevel(true);
 
 messaging.autoFlush();
 
-function sendIOU(from, to, amount, currency) {
+function sendAdd(from, to, amount, currency) {
   [from, to].map(nick => {
     ensureAgent(nick);
   });
-  agents[from].sendIOU(to, amount, currency);
+  agents[from].sendAdd(to, amount, currency);
 }
 
 if (typeof window !== 'undefined') {
@@ -27,19 +27,12 @@ if (typeof window !== 'undefined') {
   debug.log('See window.agents.alice._ledgers');
 }
 
-function displayLedger(ledger) {
-  if (typeof ledger._debts.USD === 'undefined' || ledger._debts.USD.amount < 0.0001) {// because of rounding errors
-    return `Quits`;
-  }
-  return `${ledger._debts.USD.debtor} now owes ${(Math.floor(100*ledger._debts.USD.amount+0.5))/100}`;
-}
-
 function displayAgents() {
   var html = '';
   for (var nick in agents) {
     html += `<p>${nick}:</p><ul>`;
     for (var neighbor in agents[nick]._ledgers) {
-      html += `<li>Ledger with ${neighbor}: ${displayLedger(agents[nick]._ledgers[neighbor])}</li>`;
+      html += `<li>Ledger with ${neighbor}: ${agents[nick]._ledgers[neighbor].getBalance()}</li>`;
     }
     html += `</ul>`;
   }
@@ -61,7 +54,7 @@ function sendButton(amount) {
   if (from === to) {
     window.alert('Receiver nick should be different from sender nick');
   } else {
-    sendIOU(from, to, amount, 'USD');
+    sendAdd(from, to, amount, 'USD');
   }
 }
 
@@ -110,16 +103,16 @@ document.getElementById('switch').onclick = function() {
   document.getElementById('receiver').value = oldSender;
 };
 
-document.getElementById('send-10').onclick = function() {
-  sendButton(0.10);
+document.getElementById('send-1').onclick = function() {
+  sendButton(1);
 };
 
-document.getElementById('send-100').onclick = function() {
-  sendButton(1.00);
+document.getElementById('send-5').onclick = function() {
+  sendButton(5);
 };
 
-var initialAgents = pickAgents(3);
-sendIOU(initialAgents[0], initialAgents[1], 1, 'USD');
-sendIOU(initialAgents[1], initialAgents[2], 1, 'USD');
-sendIOU(initialAgents[2], initialAgents[0], 1, 'USD');
+var initialAgents = ['Mia', 'Vincent', 'Marsellus'];
+sendAdd(initialAgents[0], initialAgents[1], 1, 'USD');
+sendAdd(initialAgents[1], initialAgents[2], 1, 'USD');
+sendAdd(initialAgents[2], initialAgents[0], 1, 'USD');
 setInterval(displayAgents, 1000);
