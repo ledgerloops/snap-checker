@@ -18,12 +18,24 @@ Agent.prototype._ensurePeer = function(peerNick) {
 };
 
 Agent.prototype._handleMessage = function(fromNick, msg) {
+  this._ensurePeer(fromNick);
   debug.log('seeing', fromNick, msg);
+  this._ledgers[fromNick].handleMessage(msg);
+  if (msg.msgType === 'ADD') {
+    const reply = {
+      msgType: 'ACK',
+      msgId: msg.msgId,
+      sender: fromNick
+    };
+    this._ledgers[fromNick].handleMessage(reply);
+    messaging.send(this._myNick, fromNick, JSON.stringify(reply));
+  }
 };
 
 Agent.prototype.sendAdd = function(creditorNick, amount, currency, waitForConfirmation) {
   this._ensurePeer(creditorNick);
-  var msg = this._ledgers[creditorNick].createAdd(amount, currency);
+  var msg = this._ledgers[creditorNick].create(amount);
+  this._ledgers[creditorNick].handleMessage(msg);
   var promise = messaging.send(this._myNick, creditorNick, JSON.stringify(msg));
   if (waitForConfirmation) {
     return new Promise((resolve, reject) => {
