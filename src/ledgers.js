@@ -21,7 +21,7 @@ function Ledger(peerNick, myNick, unit, agent) {
   this.myNextId = 0;
   this._sentAdds = {};
   this.doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
-    return this._agent._handleMessage(peerNick, JSON.parse(msgStr));
+    return this._handleMessage(JSON.parse(msgStr));
   });
   this.send = (msg) => {
     debug.log('ledger doing send!', { myNick, peerNick, msg });
@@ -30,6 +30,27 @@ function Ledger(peerNick, myNick, unit, agent) {
 }
 
 Ledger.prototype = {
+  _handleMessage: function(msg) {
+    debug.log('seeing', this._peerNick, msg);
+    this.handleMessage(msg);
+    if (msg.msgType === 'ADD') {
+      const reply = {
+        msgType: 'ACK',
+        msgId: msg.msgId,
+        sender: this._peerNick
+      };
+      this.handleMessage(reply);
+      this.send(JSON.stringify(reply));
+      this._agent._createProbe(this._peerNick); // peer now owes me money, so I'll send them a rev probe
+    } else if (msg.msgType === 'COND') {
+      if (msg.msgId > 20) { panic(); }
+      setTimeout(() => this._agent._handleCond(this._peerNick, msg), 100);
+    } else if (msg.msgType === 'FULFILL') {
+      this._agent._handleFulfill(this._peerNick, msg);
+    } else if (msg.msgType === 'PROBE') {
+      this._agent._handleProbe(this._peerNick, msg);
+    }
+  },
   create: function(amount, condition, routeId) {
     if (condition) {
       return {

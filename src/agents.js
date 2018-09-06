@@ -195,26 +195,4 @@ Agent.prototype._handleFulfill = function(fromNick, msg) {
 Agent.prototype._handleReject = function(fromNick, msg) {
 }
 
-Agent.prototype._handleMessage = function(fromNick, msg) {
-  debug.log('seeing', fromNick, msg);
-  this._ledgers[fromNick].handleMessage(msg);
-  if (msg.msgType === 'ADD') {
-    const reply = {
-      msgType: 'ACK',
-      msgId: msg.msgId,
-      sender: fromNick
-    };
-    this._ledgers[fromNick].handleMessage(reply);
-    this._ledgers[fromNick].send(JSON.stringify(reply));
-    this._createProbe(fromNick); // fromNick now owes me money, so I'll send them a rev probe
-  } else if (msg.msgType === 'COND') {
-    if (msg.msgId > 20) { panic(); }
-    setTimeout(() => this._handleCond(fromNick, msg), 100);
-  } else if (msg.msgType === 'FULFILL') {
-    this._handleFulfill(fromNick, msg);
-  } else if (msg.msgType === 'PROBE') {
-    this._handleProbe(fromNick, msg);
-  }
-};
-
 module.exports = Agent;
