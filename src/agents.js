@@ -166,33 +166,4 @@ Agent.prototype._handleCond = function(fromNick, msg) {
   }
 }
 
-Agent.prototype._handleFulfill = function(fromNick, msg) {
-  // TODO: check whether the preimage is valid
-  if (this._ledgers[fromNick]._pendingCond[msg.msgId]) {
-    const backer = this._ledgers[fromNick]._pendingCond[msg.msgId].fromNick;
-    debug.log('handling fulfill, backer found:', backer);
-    // FIXME: sending this ACK after the FULFILL has already committed the transaction confuses things!
-    // this._ledgers[fromNick].send(JSON.stringify({
-    //   msgType: 'ACK',
-    //   sender: this._myNick,
-    //   msgId: msg.msgId
-    // }));
-    debug.log('agent-level orig:', this._ledgers[fromNick]._pendingCond[msg.msgId]);
-    const backMsg = {
-      msgType: 'FULFILL',
-      sender: backer,
-      msgId: this._ledgers[fromNick]._pendingCond[msg.msgId].msg.msgId,
-      preimage: msg.preimage
-    };
-    this._ledgers[backer].handleMessage(backMsg);
-    debug.log(`Passing on FULFILL ${fromNick} -> ${this._myNick} -> ${backer}`, backMsg);
-    this._ledgers[backer].send(JSON.stringify(backMsg));
-  } else {
-    debug.log(this._myNick + ': cannot find backer, I must have been the loop initiator.');
-  }
-}
-
-Agent.prototype._handleReject = function(fromNick, msg) {
-}
-
 module.exports = Agent;
