@@ -23,7 +23,7 @@ function Agent(myNick) {
   this._pending = {};
 }
 
-Agent.prototype._ensurePeer = function(peerNick) {
+Agent.prototype.ensurePeer = function(peerNick) {
   if (typeof this._ledgers[peerNick] === 'undefined') {
     this._ledgers[peerNick] = new Ledger(peerNick, this._myNick, 'UCR', this);
   }
@@ -202,7 +202,6 @@ Agent.prototype._handleReject = function(fromNick, msg) {
 }
 
 Agent.prototype._handleMessage = function(fromNick, msg) {
-  this._ensurePeer(fromNick);
   debug.log('seeing', fromNick, msg);
   this._ledgers[fromNick].handleMessage(msg);
   if (msg.msgType === 'ADD') {
@@ -225,7 +224,6 @@ Agent.prototype._handleMessage = function(fromNick, msg) {
 };
 
 Agent.prototype.sendAdd = function(creditorNick, amount, currency, waitForConfirmation) {
-  this._ensurePeer(creditorNick);
   var msg = this._ledgers[creditorNick].create(amount);
   this._ledgers[creditorNick].handleMessage(msg);
   debug.log(this._ledgers[creditorNick]);

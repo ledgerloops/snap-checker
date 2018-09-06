@@ -18,8 +18,8 @@ messaging.autoFlush();
 function sendAdd(from, to, amount, currency) {
   ensureAgent(from);
   ensureAgent(to);
-  agents[from]._ensurePeer(to);
-  agents[to]._ensurePeer(from);
+  agents[from].ensurePeer(to);
+  agents[to].ensurePeer(from);
   agents[from].sendAdd(to, amount, currency);
 }
 
