@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "ddcd-dfs": "0.0.1",
-    "ledgerloops-peer": "0.0.1"
+    "ledgerloops-peer": "0.0.1",
+    "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
   },
   "devDependencies": {
     "grunt": "^1.0.1",
