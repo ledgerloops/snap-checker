@@ -18,7 +18,6 @@ function Agent(myNick) {
   this._myNick = myNick;
   this._ledgers = {};
   this._probesSeen = {};
-  this._sentAdds = {};
   this._preimages = {};
   this._pending = {};
 }
@@ -220,21 +219,6 @@ Agent.prototype._handleMessage = function(fromNick, msg) {
     this._handleFulfill(fromNick, msg);
   } else if (msg.msgType === 'PROBE') {
     this._handleProbe(fromNick, msg);
-  }
-};
-
-Agent.prototype.sendAdd = function(creditorNick, amount, currency, waitForConfirmation) {
-  var msg = this._ledgers[creditorNick].create(amount);
-  this._ledgers[creditorNick].handleMessage(msg);
-  debug.log(this._ledgers[creditorNick]);
-  var promise = this._ledgers[creditorNick].send(JSON.stringify(msg));
-  if (waitForConfirmation) {
-    return new Promise((resolve, reject) => {
-     this._sentAdds[msg.msgId] = { resolve, reject };
-    });
-  } else {
-    this._sentAdds[msg.msgId] = { resolve: function() {}, reject: function(err) { throw err; } };
-    return promise;
   }
 };
 

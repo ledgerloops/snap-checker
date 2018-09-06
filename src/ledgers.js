@@ -17,6 +17,7 @@ function Ledger(peerNick, myNick, unit, agent) {
   this._pending = {};
   this._agent = agent;
   this.myNextId = 0;
+  this._sentAdds = {};
   this.doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
     return this._agent._handleMessage(peerNick, JSON.parse(msgStr));
   });
@@ -84,6 +85,20 @@ Ledger.prototype = {
   },
   getBalance: function() {
     return this._currentBalance[this._myNick] - this._currentBalance[this._peerNick];
+  },
+  sendAdd: function(amount, currency, waitForConfirmation) {
+    var msg = this.create(amount);
+    this.handleMessage(msg);
+    debug.log(this);
+    var promise = this.send(JSON.stringify(msg));
+    if (waitForConfirmation) {
+      return new Promise((resolve, reject) => {
+       this._sentAdds[msg.msgId] = { resolve, reject };
+      });
+    } else {
+      this._sentAdds[msg.msgId] = { resolve: function() {}, reject: function(err) { throw err; } };
+      return promise;
+    }
   }
 };
 
