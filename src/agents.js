@@ -21,14 +21,11 @@ function Agent(myNick) {
   this._sentAdds = {};
   this._preimages = {};
   this._pending = {};
-  messaging.addChannel(myNick, (fromNick, msgStr) => {
-    return this._handleMessage(fromNick, JSON.parse(msgStr));
-  });
 }
 
 Agent.prototype._ensurePeer = function(peerNick) {
   if (typeof this._ledgers[peerNick] === 'undefined') {
-    this._ledgers[peerNick] = new Ledger(peerNick, this._myNick);
+    this._ledgers[peerNick] = new Ledger(peerNick, this._myNick, 'UCR', this);
   }
   if (typeof this._probesSeen[peerNick] === 'undefined') {
     this._probesSeen[peerNick] = { fwd: [], rev: [] };
@@ -38,7 +35,7 @@ Agent.prototype._ensurePeer = function(peerNick) {
 Agent.prototype._createProbe = function(revPeer) {
   // const newProbe = randomBytes(8).toString('hex');
   const newProbe = this._myNick + '-' + randomBytes(8).toString('hex');
-  messaging.send(this._myNick, revPeer, JSON.stringify({
+  this._ledgers[revPeer].send(JSON.stringify({
     msgType: 'PROBE',
     fwd: [],
     rev: [ newProbe ]
@@ -49,7 +46,7 @@ Agent.prototype._createProbe = function(revPeer) {
   for(let k in this._probesSeen) {
     const relBal = this._ledgers[k].getBalance() - thisBal;
     if (relBal < 0) { // lower neighbor, create a rev:
-      messaging.send(this._myNick, k, JSON.stringify({
+      this._ledgers[k].send(JSON.stringify({
         msgType: 'PROBE',
         fwd: [ newProbe ],
         rev: []
@@ -72,7 +69,7 @@ Agent.prototype._useLoop = function(routeId, revPeer, fwdPeer) {
   const hashHex = sha256(preimage).toString('hex');
   this._preimages[hashHex] = preimage;
   msg = this._ledgers[fwdPeer].create(amount, hashHex, routeId);
-  messaging.send(this._myNick, fwdPeer, JSON.stringify(msg));
+  this._ledgers[fwdPeer].send(JSON.stringify(msg));
   this._ledgers[fwdPeer].handleMessage(msg);
 }
 
@@ -97,7 +94,7 @@ Agent.prototype._handleProbe = function(fromNick, msg) {
       if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
         debug.log('no loops found from fwd probe', {fromNick, k}, this._myNick, msg.fwd, this._probesSeen[k].rev);
         setTimeout(() => {
-          messaging.send(this._myNick, k, JSON.stringify({
+          this._ledgers[k].send(JSON.stringify({
             msgType: 'PROBE',
             fwd: msg.fwd,
             rev: []
@@ -118,7 +115,7 @@ Agent.prototype._handleProbe = function(fromNick, msg) {
       if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
         debug.log('no loops found from rev probe', {fromNick, k}, this._myNick, msg.rev, this._probesSeen[k].fwd);
         setTimeout(() => {
-          messaging.send(this._myNick, k, JSON.stringify({
+          this._ledgers[k].send(JSON.stringify({
             msgType: 'PROBE',
             fwd: [],
             rev: msg.rev
@@ -138,7 +135,7 @@ Agent.prototype._handleCond = function(fromNick, msg) {
       sender: fromNick,
       preimage: this._preimages[msg.condition].toString('hex')
     };
-    messaging.send(this._myNick, fromNick, JSON.stringify(reply));
+    this._ledgers[fromNick].send(JSON.stringify(reply));
     this._ledgers[fromNick].handleMessage(reply);
   } else {
     debug.log('hashlock not mine', this._myNick, msg.condition, Object.keys(this._preimages));
@@ -159,14 +156,14 @@ Agent.prototype._handleCond = function(fromNick, msg) {
           toNick,
           msg
         };
-        messaging.send(this._myNick, toNick, JSON.stringify(fwdMsg));
+        this._ledgers[toNick].send(JSON.stringify(fwdMsg));
         this._ledgers[toNick].handleMessage(fwdMsg);
         return;
       } else if (relBal > 0) {
         suggestLowerAmount = true;
       }
     }
-    messaging.send(this._myNick, fromNick, JSON.stringify({
+    this._ledgers[fromNick].send(JSON.stringify({
       msgType: 'REJECT',
       sender: msg.sender,
       msgId: msg.msgId,
@@ -181,7 +178,7 @@ Agent.prototype._handleFulfill = function(fromNick, msg) {
     const backer = this._pending[`${msg.msgId} to ${fromNick}`].fromNick;
     debug.log('handling fulfill, backer found:', backer);
     // FIXME: sending this ACK after the FULFILL has already committed the transaction confuses things!
-    // messaging.send(this._myNick, fromNick, JSON.stringify({
+    // this._ledgers[fromNick].send(JSON.stringify({
     //   msgType: 'ACK',
     //   sender: this._myNick,
     //   msgId: msg.msgId
@@ -195,7 +192,7 @@ Agent.prototype._handleFulfill = function(fromNick, msg) {
     };
     this._ledgers[backer].handleMessage(backMsg);
     debug.log(`Passing on FULFILL ${fromNick} -> ${this._myNick} -> ${backer}`, backMsg);
-    messaging.send(this._myNick, backer, JSON.stringify(backMsg));
+    this._ledgers[backer].send(JSON.stringify(backMsg));
   } else {
     debug.log(this._myNick + ': cannot find backer, I must have been the loop initiator.');
   }
@@ -215,7 +212,7 @@ Agent.prototype._handleMessage = function(fromNick, msg) {
       sender: fromNick
     };
     this._ledgers[fromNick].handleMessage(reply);
-    messaging.send(this._myNick, fromNick, JSON.stringify(reply));
+    this._ledgers[fromNick].send(JSON.stringify(reply));
     this._createProbe(fromNick); // fromNick now owes me money, so I'll send them a rev probe
   } else if (msg.msgType === 'COND') {
     if (msg.msgId > 20) { panic(); }
@@ -231,7 +228,8 @@ Agent.prototype.sendAdd = function(creditorNick, amount, currency, waitForConfir
   this._ensurePeer(creditorNick);
   var msg = this._ledgers[creditorNick].create(amount);
   this._ledgers[creditorNick].handleMessage(msg);
-  var promise = messaging.send(this._myNick, creditorNick, JSON.stringify(msg));
+  debug.log(this._ledgers[creditorNick]);
+  var promise = this._ledgers[creditorNick].send(JSON.stringify(msg));
   if (waitForConfirmation) {
     return new Promise((resolve, reject) => {
      this._sentAdds[msg.msgId] = { resolve, reject };

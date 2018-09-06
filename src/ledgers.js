@@ -1,6 +1,7 @@
 const debug = require('./debug');
+var messaging = require('./messaging');
 
-function Ledger(peerNick, myNick, unit) {
+function Ledger(peerNick, myNick, unit, agent) {
   this._peerNick = peerNick;
   this._myNick = myNick;
   this._unit = unit;
@@ -14,7 +15,15 @@ function Ledger(peerNick, myNick, unit) {
   };
   this._committed = {};
   this._pending = {};
+  this._agent = agent;
   this.myNextId = 0;
+  this.doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
+    return this._agent._handleMessage(peerNick, JSON.parse(msgStr));
+  });
+  this.send = (msg) => {
+    debug.log('ledger doing send!', { myNick, peerNick, msg });
+    this.doSend(msg);
+  };
 }
 
 Ledger.prototype = {

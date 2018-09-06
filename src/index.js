@@ -16,9 +16,10 @@ debug.setLevel(true);
 messaging.autoFlush();
 
 function sendAdd(from, to, amount, currency) {
-  [from, to].map(nick => {
-    ensureAgent(nick);
-  });
+  ensureAgent(from);
+  ensureAgent(to);
+  agents[from]._ensurePeer(to);
+  agents[to]._ensurePeer(from);
   agents[from].sendAdd(to, amount, currency);
 }
 
