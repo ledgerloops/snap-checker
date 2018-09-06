@@ -14,7 +14,8 @@ function Ledger(peerNick, myNick, unit, agent) {
     [myNick]: 0
   };
   this._committed = {};
-  this._pending = {};
+  this._pendingMsg = {};
+  this._pendingCond = {};
   this._agent = agent;
   this.myNextId = 0;
   this._sentAdds = {};
@@ -57,27 +58,27 @@ Ledger.prototype = {
       case 'ADD':
       case 'COND': {
         this._pendingBalance[msg.beneficiary] += msg.amount;
-        this._pending[`${msg.sender}-${msg.msgId}`] = msg;
-        debug.log('COND - COND - COND', this._myNick, this._pending);
+        this._pendingMsg[`${msg.sender}-${msg.msgId}`] = msg;
+        debug.log('COND - COND - COND', this._myNick, this._pendingMsg);
         break;
       }
       case 'ACK':
       case 'FULFILL': {
-        const orig = this._pending[`${msg.sender}-${msg.msgId}`];
-        // FIXME: both Agent and Ledger are now keeping a this._pending
-        debug.log('FULFILL - FULFILL - FULFILL', this._myNick, this._pending);
+        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        // FIXME: both Agent and Ledger are now keeping a this._pendingMsg
+        debug.log('FULFILL - FULFILL - FULFILL', this._myNick, this._pendingMsg);
         this._pendingBalance[orig.beneficiary] -= orig.amount;
         this._currentBalance[orig.beneficiary] += orig.amount;
-        this._committed[`${msg.sender}-${msg.msgId}`] = this._pending[`${msg.sender}-${msg.msgId}`];
-        delete this._pending[`${msg.sender}-${msg.msgId}`];
+        this._committed[`${msg.sender}-${msg.msgId}`] = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
         debug.log('Committed', msg);
         break;
       }
       case 'REJECT':
       case 'REJECT-COND': {
-        const orig = this._pending[`${msg.sender}-${msg.msgId}`];
+        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
         this._pendingBalance[orig.beneficiary] -= orig.amount;
-        delete this._pending[`${msg.sender}-${msg.msgId}`];
+        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
         debug.log('Rejected', msg);
         break;
       }

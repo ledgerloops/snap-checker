@@ -19,7 +19,6 @@ function Agent(myNick) {
   this._ledgers = {};
   this._probesSeen = {};
   this._preimages = {};
-  this._pending = {};
 }
 
 Agent.prototype.ensurePeer = function(peerNick) {
@@ -150,7 +149,7 @@ Agent.prototype._handleCond = function(fromNick, msg) {
       if (relBal > msg.amount) { // neighbor is higher, forward it
         debug.log('forwarding!', relBal, msg.amount, fromNick, this._myNick, toNick);
         fwdMsg = this._ledgers[toNick].create(msg.amount, msg.condition, msg.routeId);
-        this._pending[`${msg.msgId} to ${toNick}`] = {
+        this._ledgers[toNick]._pendingCond[msg.msgId] = {
           fromNick,
           toNick,
           msg
@@ -173,8 +172,8 @@ Agent.prototype._handleCond = function(fromNick, msg) {
 
 Agent.prototype._handleFulfill = function(fromNick, msg) {
   // TODO: check whether the preimage is valid
-  if (this._pending[`${msg.msgId} to ${fromNick}`]) {
-    const backer = this._pending[`${msg.msgId} to ${fromNick}`].fromNick;
+  if (this._ledgers[fromNick]._pendingCond[msg.msgId]) {
+    const backer = this._ledgers[fromNick]._pendingCond[msg.msgId].fromNick;
     debug.log('handling fulfill, backer found:', backer);
     // FIXME: sending this ACK after the FULFILL has already committed the transaction confuses things!
     // this._ledgers[fromNick].send(JSON.stringify({
@@ -182,11 +181,11 @@ Agent.prototype._handleFulfill = function(fromNick, msg) {
     //   sender: this._myNick,
     //   msgId: msg.msgId
     // }));
-    debug.log('agent-level orig:', this._pending[`${msg.msgId} to ${fromNick}`]);
+    debug.log('agent-level orig:', this._ledgers[fromNick]._pendingCond[msg.msgId]);
     const backMsg = {
       msgType: 'FULFILL',
       sender: backer,
-      msgId: this._pending[`${msg.msgId} to ${fromNick}`].msg.msgId,
+      msgId: this._ledgers[fromNick]._pendingCond[msg.msgId].msg.msgId,
       preimage: msg.preimage
     };
     this._ledgers[backer].handleMessage(backMsg);
