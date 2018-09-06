@@ -18,7 +18,7 @@ function Ledger(peerNick, myNick, unit) {
 }
 
 Ledger.prototype = {
-  create: function(amount, condition) {
+  create: function(amount, condition, routeId) {
     if (condition) {
       return {
         msgType: 'COND',
@@ -27,7 +27,8 @@ Ledger.prototype = {
         sender: this._myNick,
         amount,
         unit: this._unit,
-        condition
+        condition,
+        routeId
       };
     } else {
       return {
@@ -47,13 +48,14 @@ Ledger.prototype = {
       case 'COND': {
         this._pendingBalance[msg.beneficiary] += msg.amount;
         this._pending[`${msg.sender}-${msg.msgId}`] = msg;
-        debug.log('Added pending', msg);
+        debug.log('COND - COND - COND', this._myNick, this._pending);
         break;
       }
       case 'ACK':
       case 'FULFILL': {
         const orig = this._pending[`${msg.sender}-${msg.msgId}`];
-        debug.log({ orig })
+        // FIXME: both Agent and Ledger are now keeping a this._pending
+        debug.log('FULFILL - FULFILL - FULFILL', this._myNick, this._pending);
         this._pendingBalance[orig.beneficiary] -= orig.amount;
         this._currentBalance[orig.beneficiary] += orig.amount;
         this._committed[`${msg.sender}-${msg.msgId}`] = this._pending[`${msg.sender}-${msg.msgId}`];
