@@ -16,6 +16,7 @@ function Ledger(peerNick, myNick, unit, agent) {
   this._committed = {};
   this._pendingMsg = {};
   this._pendingCond = {};
+  this._probesSeen = { fwd: [], rev: [] };
   this._agent = agent;
   this.myNextId = 0;
   this._sentAdds = {};
