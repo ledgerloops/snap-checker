@@ -32,7 +32,17 @@ function displayAgents() {
   for (var nick in agents) {
     html += `<p>${nick}:</p><ul>`;
     for (var neighbor in agents[nick]._ledgers) {
-      html += `<li>Ledger with ${neighbor}: ${agents[nick]._ledgers[neighbor].getBalance()}</li>`;
+      html += `<li>Ledger with ${neighbor}: ${agents[nick]._ledgers[neighbor].getBalance()}<ul>`;
+      let k;
+      for (k in agents[nick]._ledgers[neighbor]._committed) {
+        const entry = agents[nick]._ledgers[neighbor]._committed[k];
+        html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
+      }
+      for (k in agents[nick]._ledgers[neighbor]._pending) {
+        const entry = agents[nick]._ledgers[neighbor]._pending[k];
+        html += `<li>(entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})</li>`;
+      }
+      html += '</ul></li>';
     }
     html += `</ul>`;
   }

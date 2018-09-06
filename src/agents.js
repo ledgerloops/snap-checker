@@ -139,6 +139,7 @@ Agent.prototype._handleCond = function(fromNick, msg) {
       preimage: this._preimages[msg.condition].toString('hex')
     };
     messaging.send(this._myNick, fromNick, JSON.stringify(reply));
+    this._ledgers[fromNick].handleMessage(reply);
   } else {
     debug.log('hashlock not mine', this._myNick, msg.condition, Object.keys(this._preimages));
     let suggestLowerAmount = false;
@@ -179,11 +180,12 @@ Agent.prototype._handleFulfill = function(fromNick, msg) {
   if (this._pending[`${msg.msgId} to ${fromNick}`]) {
     const backer = this._pending[`${msg.msgId} to ${fromNick}`].fromNick;
     debug.log('handling fulfill, backer found:', backer);
-    messaging.send(this._myNick, fromNick, JSON.stringify({
-      msgType: 'ACK',
-      sender: this._myNick,
-      msgId: msg.msgId
-    }));
+    // FIXME: sending this ACK after the FULFILL has already committed the transaction confuses things!
+    // messaging.send(this._myNick, fromNick, JSON.stringify({
+    //   msgType: 'ACK',
+    //   sender: this._myNick,
+    //   msgId: msg.msgId
+    // }));
     debug.log('agent-level orig:', this._pending[`${msg.msgId} to ${fromNick}`]);
     const backMsg = {
       msgType: 'FULFILL',
@@ -195,7 +197,7 @@ Agent.prototype._handleFulfill = function(fromNick, msg) {
     debug.log(`Passing on FULFILL ${fromNick} -> ${this._myNick} -> ${backer}`, backMsg);
     messaging.send(this._myNick, backer, JSON.stringify(backMsg));
   } else {
-    debug.log('help, cannot find backer!');
+    debug.log(this._myNick + ': cannot find backer, I must have been the loop initiator.');
   }
 }
 
