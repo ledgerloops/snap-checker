@@ -32,17 +32,12 @@ function Ledger(peerNick, myNick, unit, agent) {
   this._agent = agent;
   this.myNextId = 0;
   this._sentAdds = {};
-  this.doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
+  this.send = messaging.addChannel(peerNick, myNick, (msgStr) => {
     return this._handleMessage(JSON.parse(msgStr));
   });
-  this.send = (msg) => {
-    debug.log('ledger doing send!', { myNick, peerNick, msg });
-    this.doSend(msg);
-  };
 }
 
 Ledger.prototype = {
-
   _useLoop: function(routeId, otherPeer) {
     // This Peer at this ledger wants to receive a COND.
     // The other peer wants to send you a COND.
@@ -83,56 +78,64 @@ Ledger.prototype = {
       }
     }
   },
+  considerProbe: function(peerBalance, msg) {
+    const relBal = this.getBalance() - peerBalance;
+    let usableProbes = [];
+    if (relBal < 0 && msg.fwd.length) { // lower neighbor, forwards the fwd's
+      let loopFound = false;
+      msg.fwd.map(probe => {
+        if (this._probesSeen.rev.indexOf(probe) !== -1) {
+          console.log('loop found from fwd probe!', probe, this._myNick, JSON.stringify(this._probesSeen));
+          // Peer has sent a forward probe, meaning they want to send a COND.
+          // k has sent a rev probe, meaning they want to receive a COND.
+          // this is beneficial if Peer owes you money (pos balance) and you owe k money (neg balance)
+          loopFound = true;
+          usableProbes.push(probe);
+        }
+      });
+      if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
+        debug.log('no loops found from fwd probe', this._peerNick, this._myNick, msg.fwd, this._probesSeen.rev);
+        setTimeout(() => {
+          this.send(JSON.stringify({
+            msgType: 'PROBE',
+            fwd: msg.fwd,
+            rev: []
+          }));
+        }, 100);
+      }
+    }
+    if (relBal > 0 && msg.rev.length) { // higher neighbor, forwards the rev's
+      let loopFound = false;
+      msg.rev.map(probe => {
+        if (this._probesSeen.fwd.indexOf(probe) !== -1) {
+          console.log('loop found from rev probe!', probe, this._myNick, this._peerNick, JSON.stringify(this._probesSeen));
+          loopFound = true;
+          // stop passing on the rev probe, but don't initiate the loop, leave that to the node that discovers the fwd probe 
+        }
+      });
+      if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
+        debug.log('no loops found from rev probe', this._peerNick, this._myNick, msg.rev, this._probesSeen.fwd);
+        setTimeout(() => {
+          this.send(JSON.stringify({
+            msgType: 'PROBE',
+            fwd: [],
+            rev: msg.rev
+          }));
+        }, 100);
+      }
+    }
+    return usableProbes;
+  },
 
   _handleProbe: function(msg) {
     this._probesSeen.fwd = this._probesSeen.fwd.concat(msg.fwd);
     this._probesSeen.rev = this._probesSeen.rev.concat(msg.rev);
     const thisBal = this.getBalance();
     for(let k in this._agent._ledgers) {
-      const relBal = this._agent._ledgers[k].getBalance() - thisBal;
-      if (relBal < 0 && msg.fwd.length) { // lower neighbor, forwards the fwd's
-        let loopFound = false;
-        msg.fwd.map(probe => {
-          if (this._agent._ledgers[k]._probesSeen.rev.indexOf(probe) !== -1) {
-            console.log('loop found from fwd probe!', probe, k, this._myNick, this._peerNick, JSON.stringify(this._agent._ledgers[k]._probesSeen));
-            // Peer has sent a forward probe, meaning they want to send a COND.
-            // k has sent a rev probe, meaning they want to receive a COND.
-            // this is beneficial if Peer owes you money (pos balance) and you owe k money (neg balance)
-            loopFound = true;
-            this._useLoop(probe, k);
-          }
-        });
-        if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
-          debug.log('no loops found from fwd probe', {fromNick: this._peerNick, k}, this._myNick, msg.fwd, this._agent._ledgers[k]._probesSeen.rev);
-          setTimeout(() => {
-            this._agent._ledgers[k].send(JSON.stringify({
-              msgType: 'PROBE',
-              fwd: msg.fwd,
-              rev: []
-            }));
-          }, 100);
-        }
-      }
-      if (relBal > 0 && msg.rev.length) { // higher neighbor, forwards the rev's
-        let loopFound = false;
-        msg.rev.map(probe => {
-          if (this._agent._ledgers[k]._probesSeen.fwd.indexOf(probe) !== -1) {
-            console.log('loop found from rev probe!', probe, k, this._myNick, this._peerNick, JSON.stringify(this._agent._ledgers[k]._probesSeen));
-            loopFound = true;
-            // stop passing on the rev probe, but don't initiate the loop, leave that to the node that discovers the fwd probe 
-          }
-        });
-        if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
-          debug.log('no loops found from rev probe', {fromNick: this._peerNick, k}, this._myNick, msg.rev, this._agent._ledgers[k]._probesSeen.fwd);
-          setTimeout(() => {
-            this._agent._ledgers[k].send(JSON.stringify({
-              msgType: 'PROBE',
-              fwd: [],
-              rev: msg.rev
-            }));
-          }, 100);
-        }
-      }
+      const usableProbes = this._agent._ledgers[k].considerProbe(thisBal, msg);
+      usableProbes.map(probe => {
+        this._useLoop(probe, k);
+      });
     }
   },
 
