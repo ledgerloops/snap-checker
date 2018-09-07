@@ -1,18 +1,6 @@
 var messaging = require('./messaging');
 var debug = require('./debug');
 var Ledger = require('./ledgers');
-var randomBytes = require('randombytes');
-var shajs = require('sha.js')
-
-function sha256(x) {
-  return shajs('sha256').update(x).digest();
-}
-
-function verifyHex(preimageHex, hashHex) {
-  const preimage = Buffer.from(preimageHex, 'hex');
-  const correctHash = sha256(preimage);
-  return Buffer.from(hashHex, 'hex').equals(correctHash);
-}
 
 function Agent(myNick) {
   this._myNick = myNick;
@@ -25,24 +13,6 @@ Agent.prototype.ensurePeer = function(peerNick) {
     this._ledgers[peerNick] = new Ledger(peerNick, this._myNick, 'UCR', this);
   }
 };
-
-Agent.prototype._useLoop = function(routeId, revPeer, fwdPeer) {
-  // fwdPeer wants to receive a COND.
-  // revPeer wants to send you a COND.
-  // this is beneficial if revPeer owes you money (pos balance) and you owe fwdPeer money (neg balance)
-
-  const balOut = this._ledgers[revPeer].getBalance(); // should be neg
-  const balIn = this._ledgers[fwdPeer].getBalance();  // should be pos
-  const diff = balIn - balOut;
-  const amount = diff/2;
-  debug.log('using loop', this._myNick, { balOut, balIn, diff, amount });
-  const preimage = randomBytes(256);
-  const hashHex = sha256(preimage).toString('hex');
-  this._preimages[hashHex] = preimage;
-  msg = this._ledgers[fwdPeer].create(amount, hashHex, routeId);
-  this._ledgers[fwdPeer].send(JSON.stringify(msg));
-  this._ledgers[fwdPeer].handleMessage(msg);
-}
 
 Agent.prototype._handleCond = function(fromNick, msg) {
   if (this._preimages[msg.condition]) {

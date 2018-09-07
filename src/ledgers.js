@@ -1,6 +1,17 @@
 const debug = require('./debug');
 var messaging = require('./messaging');
 var randomBytes = require('randombytes');
+var shajs = require('sha.js')
+
+function sha256(x) {
+  return shajs('sha256').update(x).digest();
+}
+
+function verifyHex(preimageHex, hashHex) {
+  const preimage = Buffer.from(preimageHex, 'hex');
+  const correctHash = sha256(preimage);
+  return Buffer.from(hashHex, 'hex').equals(correctHash);
+}
 
 function Ledger(peerNick, myNick, unit, agent) {
   this._peerNick = peerNick;
@@ -31,6 +42,25 @@ function Ledger(peerNick, myNick, unit, agent) {
 }
 
 Ledger.prototype = {
+
+  _useLoop: function(routeId, otherPeer) {
+    // This Peer at this ledger wants to receive a COND.
+    // The other peer wants to send you a COND.
+    // this is beneficial if revPeer owes you money (pos balance) and you owe this ledger's Peer money (neg balance)
+  
+    const balOut = this._agent._ledgers[otherPeer].getBalance(); // should be neg
+    const balIn = this.getBalance();  // should be pos
+    const diff = balIn - balOut;
+    const amount = diff/2;
+    debug.log('using loop', this._myNick, { balOut, balIn, diff, amount });
+    const preimage = randomBytes(256);
+    const hashHex = sha256(preimage).toString('hex');
+    this._agent._preimages[hashHex] = preimage;
+    msg = this.create(amount, hashHex, routeId);
+    this.send(JSON.stringify(msg));
+    this.handleMessage(msg);
+  },
+
   _createProbe: function() {
     // const newProbe = randomBytes(8).toString('hex');
     const newProbe = this._myNick + '-' + randomBytes(8).toString('hex');
@@ -69,7 +99,7 @@ Ledger.prototype = {
             // k has sent a rev probe, meaning they want to receive a COND.
             // this is beneficial if Peer owes you money (pos balance) and you owe k money (neg balance)
             loopFound = true;
-            this._agent._useLoop(probe, k, this._peerNick);
+            this._useLoop(probe, k);
           }
         });
         if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
@@ -89,8 +119,7 @@ Ledger.prototype = {
           if (this._agent._ledgers[k]._probesSeen.fwd.indexOf(probe) !== -1) {
             console.log('loop found from rev probe!', probe, k, this._myNick, this._peerNick, JSON.stringify(this._agent._ledgers[k]._probesSeen));
             loopFound = true;
-            // commenting this out to avoid finding the same loop twice:
-            // this._useLoop(probe, this.peerNick, k);
+            // stop passing on the rev probe, but don't initiate the loop, leave that to the node that discovers the fwd probe 
           }
         });
         if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
