@@ -25,7 +25,7 @@ module.exports = function(grunt) {
         }
       },
       main: {
-        src: 'src/index.js',
+        src: 'src/client-side.js',
         dest: 'js/bundle.js',
       }
     },
