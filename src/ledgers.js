@@ -13,7 +13,7 @@ function verifyHex(preimageHex, hashHex) {
   return Buffer.from(hashHex, 'hex').equals(correctHash);
 }
 
-function Ledger(peerNick, myNick, unit, agent) {
+function Ledger(peerNick, myNick, unit, agent, channel) {
   this._peerNick = peerNick;
   this._myNick = myNick;
   this._unit = unit;
@@ -31,7 +31,7 @@ function Ledger(peerNick, myNick, unit, agent) {
   this._probesSeen = { fwd: [], rev: [] };
   this._agent = agent;
   this.myNextId = 0;
-  this._doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
+  this._doSend = messaging.addChannel(channel, peerNick, myNick, (msgStr) => {
     return this._handleMessage(JSON.parse(msgStr));
   });
 }

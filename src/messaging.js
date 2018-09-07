@@ -3,6 +3,8 @@
 
 var debug = require('./debug');
 
+const WebSocket = require('isomorphic-ws');
+ 
 // Note that this module acts a a singleton, as it connects the various agents
 // within one simulation process:
 var channels = {};
@@ -44,20 +46,64 @@ function flush() {
 }
 
 module.exports = {
-  addChannel: function(fromNick, toNick, cb) {
-    var chanId = `${fromNick} -> ${toNick}`;
-    var chanIdBack = `${toNick} -> ${fromNick}`;
-    channels[chanId] = cb;
-    debug.log(`Messaging channel for ${chanId} created.`);
-    return (msg) => {
-      if (autoFlush) {
-        return sendOneMessage({ chanId: chanIdBack, msg });
-      } else {
-        queue.push({ chanId: chanIdBack, msg });
-        debug.log(JSON.parse(msg));
-        return Promise.resolve();
-      }
-    };
+  addChannel: function(medium, myNick, peerNick, cb) {
+    if (typeof medium == 'number') {
+      const wss = new WebSocket.Server({ port: medium });
+      console.log(`${myNick} is listening for ${peerNick} on ws://localhost:${medium}.`);
+      let peer;
+      wss.on('connection', function connection(ws) {
+        if (!peer) {
+          console.log(`${peerNick} has connected!`);
+          peer = ws;
+        }
+        ws.on('message', (msg) => {
+          console.log(`Server ${myNick} receives message from client ${peerNick}`, msg);
+          cb(msg);
+        });
+      });
+      return (msg) => {
+        if (!peer) {
+          console.log(`failed to send message from ${myNick} to ${peerNick} because nobody is connected on port ${medium}.`);
+        } else {
+          console.log(`sending message from server ${myNick} to client {$peerNick}`, msg);
+          peer.send(msg);
+        }
+      };
+    } else if (typeof medium == 'string') {
+      const ws = new WebSocket(medium);
+      let open = false;
+      ws.onopen = function open() {
+        console.log(`${peerNick} is connected to ${myNick} over ${medium}.`);
+      };
+      
+      ws.onmessage = (msg) => {
+        console.log(`Client ${myNick} receives message from server ${peerNick}`, msg);
+        cb(msg);
+      };
+
+      return (msg) => {
+        if (!open) {
+          console.log(`failed to send message from ${myNick} to ${peerNick} because nobody is listening on ${medium}.`);
+        } else {
+          console.log(`sending message from client ${myNick} to server {$peerNick}`, msg);
+          ws.send(msg);
+        }
+      };
+    } else {
+      var chanId = `${myNick} -> ${peerNick}`;
+      var chanIdBack = `${peerNick} -> ${myNick}`;
+      channels[chanId] = cb;
+      debug.log(`Messaging channel for ${chanId} created.`);
+      return (msg) => {
+        if (autoFlush) {
+          return sendOneMessage({ chanId: chanIdBack, msg });
+        } else {
+          queue.push({ chanId: chanIdBack, msg });
+          debug.log(JSON.parse(msg));
+          return Promise.resolve();
+        }
+      };
+    }
   },
   flush,
   autoFlush: function() { autoFlush = true; },
