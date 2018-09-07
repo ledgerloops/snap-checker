@@ -20,7 +20,8 @@ function sendAdd(from, to, amount, currency) {
   ensureAgent(to);
   agents[from].ensurePeer(to);
   agents[to].ensurePeer(from);
-  agents[from]._ledgers[to].sendAdd(amount, currency);
+  const msg = agents[from]._ledgers[to].create(amount);
+  agents[from]._ledgers[to].send(msg);
 }
 
 if (typeof window !== 'undefined') {

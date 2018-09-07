@@ -31,7 +31,6 @@ function Ledger(peerNick, myNick, unit, agent) {
   this._probesSeen = { fwd: [], rev: [] };
   this._agent = agent;
   this.myNextId = 0;
-  this._sentAdds = {};
   this._doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
     return this._handleMessage(JSON.parse(msgStr));
   });
@@ -235,19 +234,6 @@ Ledger.prototype = {
   },
   getBalance: function() {
     return this._currentBalance[this._myNick] - this._currentBalance[this._peerNick];
-  },
-  sendAdd: function(amount, currency, waitForConfirmation) {
-    var msg = this.create(amount);
-    debug.log(this);
-    var promise = this.send(msg);
-    if (waitForConfirmation) {
-      return new Promise((resolve, reject) => {
-       this._sentAdds[msg.msgId] = { resolve, reject };
-      });
-    } else {
-      this._sentAdds[msg.msgId] = { resolve: function() {}, reject: function(err) { throw err; } };
-      return promise;
-    }
   },
 
   _handleCond: function(msg) {
