@@ -16,10 +16,12 @@ debug.setLevel(true);
 messaging.autoFlush();
 
 function sendAdd(from, to, amount, currency) {
-  [from, to].map(nick => {
-    ensureAgent(nick);
-  });
-  agents[from].sendAdd(to, amount, currency);
+  ensureAgent(from);
+  ensureAgent(to);
+  agents[from].ensurePeer(to);
+  agents[to].ensurePeer(from);
+  const msg = agents[from]._ledgers[to].create(amount);
+  agents[from]._ledgers[to].send(msg);
 }
 
 if (typeof window !== 'undefined') {
@@ -123,6 +125,6 @@ document.getElementById('send-5').onclick = function() {
 
 var initialAgents = ['Mia', 'Vincent', 'Marsellus'];
 setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1, 'USD'), 0);
-setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 1, 'USD'), 1000);
-setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1, 'USD'), 2000);
+setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 1, 'USD'), 100);
+setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1, 'USD'), 200);
 setInterval(displayAgents, 1000);

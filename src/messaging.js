@@ -10,12 +10,12 @@ var queue = [];
 var autoFlush = false;
 
 function sendOneMessage(obj) {
-  if (typeof channels[obj.toNick] === 'undefined') {
-    console.error('Unknown recipient', obj);
-    return Promise.reject(new Error('unknown message recipient'));
+  if (typeof channels[obj.chanId] === 'undefined') {
+    console.error('Unknown chanId', obj.chanId);
+    return Promise.reject(new Error('unknown chanId'));
   }
-  debug.log(`${JSON.parse(obj.msg).msgType} message from ${obj.fromNick} to ${obj.toNick}:`, JSON.parse(obj.msg));
-  return channels[obj.toNick](obj.fromNick, obj.msg);
+  debug.log(obj.chanId, JSON.parse(obj.msg));
+  return channels[obj.chanId](obj.msg);
 }
 
 function flush() {
@@ -44,18 +44,20 @@ function flush() {
 }
 
 module.exports = {
-  addChannel: function(address, cb) {
-    channels[address] = cb;
-    debug.log(`Messaging channel for recipient ${address} created.`);
-  },
-  send: function(fromNick, toNick, msg) {
-    if (autoFlush) {
-      return sendOneMessage({ fromNick, toNick, msg });
-    } else {
-      queue.push({ fromNick, toNick, msg });
-      debug.log(JSON.parse(msg));
-      return Promise.resolve();
-    }
+  addChannel: function(fromNick, toNick, cb) {
+    var chanId = `${fromNick} -> ${toNick}`;
+    var chanIdBack = `${toNick} -> ${fromNick}`;
+    channels[chanId] = cb;
+    debug.log(`Messaging channel for ${chanId} created.`);
+    return (msg) => {
+      if (autoFlush) {
+        return sendOneMessage({ chanId: chanIdBack, msg });
+      } else {
+        queue.push({ chanId: chanIdBack, msg });
+        debug.log(JSON.parse(msg));
+        return Promise.resolve();
+      }
+    };
   },
   flush,
   autoFlush: function() { autoFlush = true; },
