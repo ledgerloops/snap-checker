@@ -26,29 +26,6 @@ Agent.prototype.ensurePeer = function(peerNick) {
   }
 };
 
-Agent.prototype._createProbe = function(revPeer) {
-  // const newProbe = randomBytes(8).toString('hex');
-  const newProbe = this._myNick + '-' + randomBytes(8).toString('hex');
-  this._ledgers[revPeer].send(JSON.stringify({
-    msgType: 'PROBE',
-    fwd: [],
-    rev: [ newProbe ]
-  }));
-  console.log('storing as if it were a fwd probe from', revPeer, newProbe);
-  this._ledgers[revPeer]._probesSeen.fwd.push(newProbe); // pretend it came from them, to detect loops later
-  const thisBal = this._ledgers[revPeer].getBalance();
-  for(let k in this._ledgers) {
-    const relBal = this._ledgers[k].getBalance() - thisBal;
-    if (relBal < 0) { // lower neighbor, create a rev:
-      this._ledgers[k].send(JSON.stringify({
-        msgType: 'PROBE',
-        fwd: [ newProbe ],
-        rev: []
-      }));
-    }
-  }
-}
-
 Agent.prototype._useLoop = function(routeId, revPeer, fwdPeer) {
   // fwdPeer wants to receive a COND.
   // revPeer wants to send you a COND.

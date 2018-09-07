@@ -1,5 +1,6 @@
 const debug = require('./debug');
 var messaging = require('./messaging');
+var randomBytes = require('randombytes');
 
 function Ledger(peerNick, myNick, unit, agent) {
   this._peerNick = peerNick;
@@ -30,6 +31,29 @@ function Ledger(peerNick, myNick, unit, agent) {
 }
 
 Ledger.prototype = {
+  _createProbe: function() {
+    // const newProbe = randomBytes(8).toString('hex');
+    const newProbe = this._myNick + '-' + randomBytes(8).toString('hex');
+    this.send(JSON.stringify({
+      msgType: 'PROBE',
+      fwd: [],
+      rev: [ newProbe ]
+    }));
+    console.log('storing as if it were a fwd probe from', this._peerNick, newProbe);
+    this._probesSeen.fwd.push(newProbe); // pretend it came from them, to detect loops later
+    const thisBal = this.getBalance();
+    for(let k in this._agent._ledgers) {
+      const relBal = this._agent._ledgers[k].getBalance() - thisBal;
+      if (relBal < 0) { // lower neighbor, create a rev:
+        this._agent._ledgers[k].send(JSON.stringify({
+          msgType: 'PROBE',
+          fwd: [ newProbe ],
+          rev: []
+        }));
+      }
+    }
+  },
+
   _handleMessage: function(msg) {
     debug.log('seeing', this._peerNick, msg);
     this.handleMessage(msg);
@@ -41,7 +65,7 @@ Ledger.prototype = {
       };
       this.handleMessage(reply);
       this.send(JSON.stringify(reply));
-      this._agent._createProbe(this._peerNick); // peer now owes me money, so I'll send them a rev probe
+      this._createProbe(); // peer now owes me money, so I'll send them a rev probe
     } else if (msg.msgType === 'COND') {
       if (msg.msgId > 20) { panic(); }
       setTimeout(() => this._agent._handleCond(this._peerNick, msg), 100);
