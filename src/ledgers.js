@@ -32,12 +32,16 @@ function Ledger(peerNick, myNick, unit, agent) {
   this._agent = agent;
   this.myNextId = 0;
   this._sentAdds = {};
-  this.send = messaging.addChannel(peerNick, myNick, (msgStr) => {
+  this._doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
     return this._handleMessage(JSON.parse(msgStr));
   });
 }
 
 Ledger.prototype = {
+  send: function(obj) {
+    this._handleMessage(obj, true);
+    this._doSend(JSON.stringify(obj));
+  },
   _useLoop: function(routeId, otherPeer) {
     // This Peer at this ledger wants to receive a COND.
     // The other peer wants to send you a COND.
@@ -52,29 +56,28 @@ Ledger.prototype = {
     const hashHex = sha256(preimage).toString('hex');
     this._agent._preimages[hashHex] = preimage;
     msg = this.create(amount, hashHex, routeId);
-    this.send(JSON.stringify(msg));
-    this.handleMessage(msg);
+    this.send(msg);
   },
 
   _createProbe: function() {
     // const newProbe = randomBytes(8).toString('hex');
     const newProbe = this._myNick + '-' + randomBytes(8).toString('hex');
-    this.send(JSON.stringify({
+    this.send({
       msgType: 'PROBE',
       fwd: [],
       rev: [ newProbe ]
-    }));
+    });
     console.log('storing as if it were a fwd probe from', this._peerNick, newProbe);
     this._probesSeen.fwd.push(newProbe); // pretend it came from them, to detect loops later
     const thisBal = this.getBalance();
     for(let k in this._agent._ledgers) {
       const relBal = this._agent._ledgers[k].getBalance() - thisBal;
       if (relBal < 0) { // lower neighbor, create a rev:
-        this._agent._ledgers[k].send(JSON.stringify({
+        this._agent._ledgers[k].send({
           msgType: 'PROBE',
           fwd: [ newProbe ],
           rev: []
-        }));
+        });
       }
     }
   },
@@ -96,11 +99,11 @@ Ledger.prototype = {
       if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
         debug.log('no loops found from fwd probe', this._peerNick, this._myNick, msg.fwd, this._probesSeen.rev);
         setTimeout(() => {
-          this.send(JSON.stringify({
+          this.send({
             msgType: 'PROBE',
             fwd: msg.fwd,
             rev: []
-          }));
+          });
         }, 100);
       }
     }
@@ -116,11 +119,11 @@ Ledger.prototype = {
       if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
         debug.log('no loops found from rev probe', this._peerNick, this._myNick, msg.rev, this._probesSeen.fwd);
         setTimeout(() => {
-          this.send(JSON.stringify({
+          this.send({
             msgType: 'PROBE',
             fwd: [],
             rev: msg.rev
-          }));
+          });
         }, 100);
       }
     }
@@ -139,28 +142,6 @@ Ledger.prototype = {
     }
   },
 
-  _handleMessage: function(msg) {
-    debug.log('seeing', this._peerNick, msg);
-    this.handleMessage(msg);
-    if (msg.msgType === 'ADD') {
-      const reply = {
-        msgType: 'ACK',
-        msgId: msg.msgId,
-        sender: this._peerNick
-      };
-      this.handleMessage(reply);
-      this.send(JSON.stringify(reply));
-      this._createProbe(); // peer now owes me money, so I'll send them a rev probe
-    } else if (msg.msgType === 'COND') {
-      if (msg.msgId > 20) { panic(); }
-      setTimeout(() => this._handleCond(msg), 100);
-    } else if (msg.msgType === 'FULFILL') {
-      this._handleFulfill(msg);
-    } else if (msg.msgType === 'PROBE') {
-      debug.log('handling probe', this._myNick, this._peerNick, msg);
-      this._handleProbe(msg);
-    }
-  },
   create: function(amount, condition, routeId) {
     if (condition) {
       return {
@@ -184,26 +165,56 @@ Ledger.prototype = {
       };
     }
   },
-  handleMessage: function(msg) {
+  _handleMessage: function(msg, outgoing) {
     debug.log('Handling', msg);
     switch(msg.msgType) {
-      case 'ADD':
+      case 'ADD': {
+        this._pendingBalance[msg.beneficiary] += msg.amount;
+        this._pendingMsg[`${msg.sender}-${msg.msgId}`] = msg;
+        if (!outgoing) {
+          const reply = {
+            msgType: 'ACK',
+            msgId: msg.msgId,
+            sender: this._peerNick
+          };
+          this.send(reply);
+          this._createProbe(); // peer now owes me money, so I'll send them a rev probe
+        }
+        break;
+      }
       case 'COND': {
         this._pendingBalance[msg.beneficiary] += msg.amount;
         this._pendingMsg[`${msg.sender}-${msg.msgId}`] = msg;
         debug.log('COND - COND - COND', this._myNick, this._pendingMsg);
+        if (!outgoing) {
+          setTimeout(() => this._handleCond(msg), 100);
+        }
         break;
       }
-      case 'ACK':
+      case 'ACK': {
+        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        if (!orig) {
+          debug.log('panic! ACK for non-existing orig', this._pendingMsg, msg);
+          panic();
+        }
+        this._pendingBalance[orig.beneficiary] -= orig.amount;
+        this._currentBalance[orig.beneficiary] += orig.amount;
+        this._committed[`${msg.sender}-${msg.msgId}`] = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        debug.log('Committed', msg);
+        break;
+      }
       case 'FULFILL': {
         const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
-        // FIXME: both Agent and Ledger are now keeping a this._pendingMsg
         debug.log('FULFILL - FULFILL - FULFILL', this._myNick, this._pendingMsg);
         this._pendingBalance[orig.beneficiary] -= orig.amount;
         this._currentBalance[orig.beneficiary] += orig.amount;
         this._committed[`${msg.sender}-${msg.msgId}`] = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
         delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
         debug.log('Committed', msg);
+        if (!outgoing) {
+          this._handleFulfill(msg);
+        }
         break;
       }
       case 'REJECT':
@@ -214,6 +225,12 @@ Ledger.prototype = {
         debug.log('Rejected', msg);
         break;
       }
+      case 'PROBE': {
+        if (!outgoing) {
+          this._handleProbe(msg);
+        }
+        break;
+      }
     }
   },
   getBalance: function() {
@@ -221,9 +238,8 @@ Ledger.prototype = {
   },
   sendAdd: function(amount, currency, waitForConfirmation) {
     var msg = this.create(amount);
-    this.handleMessage(msg);
     debug.log(this);
-    var promise = this.send(JSON.stringify(msg));
+    var promise = this.send(msg);
     if (waitForConfirmation) {
       return new Promise((resolve, reject) => {
        this._sentAdds[msg.msgId] = { resolve, reject };
@@ -243,8 +259,7 @@ Ledger.prototype = {
         sender: this._peerNick,
         preimage: this._agent._preimages[msg.condition].toString('hex')
       };
-      this.send(JSON.stringify(reply));
-      this.handleMessage(reply);
+      this.send(reply);
     } else {
       debug.log('hashlock not mine', this._myNick, msg.condition, Object.keys(this._agent._preimages));
       let suggestLowerAmount = false;
@@ -264,19 +279,18 @@ Ledger.prototype = {
             toNick,
             msg
           };
-          this._agent._ledgers[toNick].send(JSON.stringify(fwdMsg));
-          this._agent._ledgers[toNick].handleMessage(fwdMsg);
+          this._agent._ledgers[toNick].send(fwdMsg);
           return;
         } else if (relBal > 0) {
           suggestLowerAmount = true;
         }
       }
-      this.send(JSON.stringify({
+      this.send({
         msgType: 'REJECT',
         sender: msg.sender,
         msgId: msg.msgId,
         reason: (suggestLowerAmount ? 'try a lower amount' : 'not my hashlock and no onward route found')
-      }));
+      });
     }
   },
 
@@ -286,11 +300,11 @@ Ledger.prototype = {
       const backer = this._pendingCond[msg.msgId].fromNick;
       debug.log('handling fulfill, backer found:', backer);
       // FIXME: sending this ACK after the FULFILL has already committed the transaction confuses things!
-      // this.send(JSON.stringify({
+      // this.send({
       //   msgType: 'ACK',
       //   sender: this._myNick,
       //   msgId: msg.msgId
-      // }));
+      // });
       debug.log('cond-level orig:', this._pendingCond[msg.msgId]);
       const backMsg = {
         msgType: 'FULFILL',
@@ -298,9 +312,8 @@ Ledger.prototype = {
         msgId: this._pendingCond[msg.msgId].msg.msgId,
         preimage: msg.preimage
       };
-      this._agent._ledgers[backer].handleMessage(backMsg);
       debug.log(`Passing on FULFILL ${this._peerNick} -> ${this._myNick} -> ${backer}`, backMsg);
-      this._agent._ledgers[backer].send(JSON.stringify(backMsg));
+      this._agent._ledgers[backer].send(backMsg);
     } else {
       debug.log(this._myNick + ': cannot find backer, I must have been the loop initiator.');
     }
