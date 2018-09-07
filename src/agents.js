@@ -44,59 +44,6 @@ Agent.prototype._useLoop = function(routeId, revPeer, fwdPeer) {
   this._ledgers[fwdPeer].handleMessage(msg);
 }
 
-Agent.prototype._handleProbe = function(fromNick, msg) {
-  this._ledgers[fromNick]._probesSeen.fwd = this._ledgers[fromNick]._probesSeen.fwd.concat(msg.fwd);
-  this._ledgers[fromNick]._probesSeen.rev = this._ledgers[fromNick]._probesSeen.rev.concat(msg.rev);
-  const thisBal = this._ledgers[fromNick].getBalance();
-  for(let k in this._ledgers) {
-    const relBal = this._ledgers[k].getBalance() - thisBal;
-    if (relBal < 0 && msg.fwd.length) { // lower neighbor, forwards the fwd's
-      let loopFound = false;
-      msg.fwd.map(probe => {
-        if (this._ledgers[k]._probesSeen.rev.indexOf(probe) !== -1) {
-          console.log('loop found from fwd probe!', probe, k, this._myNick, fromNick, JSON.stringify(this._ledgers[k]._probesSeen));
-          // fromNick has sent a forward probe, meaning they want to send a COND.
-          // k has sent a rev probe, meaning they want to receive a COND.
-          // this is beneficial if fromNick owes you money (pos balance) and you owe k money (neg balance)
-          loopFound = true;
-          this._useLoop(probe, k, fromNick);
-        }
-      });
-      if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
-        debug.log('no loops found from fwd probe', {fromNick, k}, this._myNick, msg.fwd, this._ledgers[k]._probesSeen.rev);
-        setTimeout(() => {
-          this._ledgers[k].send(JSON.stringify({
-            msgType: 'PROBE',
-            fwd: msg.fwd,
-            rev: []
-          }));
-        }, 100);
-      }
-    }
-    if (relBal > 0 && msg.rev.length) { // higher neighbor, forwards the rev's
-      let loopFound = false;
-      msg.rev.map(probe => {
-        if (this._ledgers[k]._probesSeen.fwd.indexOf(probe) !== -1) {
-          console.log('loop found from rev probe!', probe, k, this._myNick, fromNick, JSON.stringify(this._ledgers[k]._probesSeen));
-          loopFound = true;
-          // commenting this out to avoid finding the same loop twice:
-          // this._useLoop(probe, fromNick, k);
-        }
-      });
-      if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
-        debug.log('no loops found from rev probe', {fromNick, k}, this._myNick, msg.rev, this._ledgers[k]._probesSeen.fwd);
-        setTimeout(() => {
-          this._ledgers[k].send(JSON.stringify({
-            msgType: 'PROBE',
-            fwd: [],
-            rev: msg.rev
-          }));
-        }, 100);
-      }
-    }
-  }
-}
-
 Agent.prototype._handleCond = function(fromNick, msg) {
   if (this._preimages[msg.condition]) {
     debug.log('replying with fulfill!', msg.condition, this._preimages[msg.condition].toString('hex'))

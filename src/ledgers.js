@@ -54,6 +54,59 @@ Ledger.prototype = {
     }
   },
 
+  _handleProbe: function(msg) {
+    this._probesSeen.fwd = this._probesSeen.fwd.concat(msg.fwd);
+    this._probesSeen.rev = this._probesSeen.rev.concat(msg.rev);
+    const thisBal = this.getBalance();
+    for(let k in this._agent._ledgers) {
+      const relBal = this._agent._ledgers[k].getBalance() - thisBal;
+      if (relBal < 0 && msg.fwd.length) { // lower neighbor, forwards the fwd's
+        let loopFound = false;
+        msg.fwd.map(probe => {
+          if (this._agent._ledgers[k]._probesSeen.rev.indexOf(probe) !== -1) {
+            console.log('loop found from fwd probe!', probe, k, this._myNick, this._peerNick, JSON.stringify(this._agent._ledgers[k]._probesSeen));
+            // Peer has sent a forward probe, meaning they want to send a COND.
+            // k has sent a rev probe, meaning they want to receive a COND.
+            // this is beneficial if Peer owes you money (pos balance) and you owe k money (neg balance)
+            loopFound = true;
+            this._agent._useLoop(probe, k, this._peerNick);
+          }
+        });
+        if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
+          debug.log('no loops found from fwd probe', {fromNick: this._peerNick, k}, this._myNick, msg.fwd, this._agent._ledgers[k]._probesSeen.rev);
+          setTimeout(() => {
+            this._agent._ledgers[k].send(JSON.stringify({
+              msgType: 'PROBE',
+              fwd: msg.fwd,
+              rev: []
+            }));
+          }, 100);
+        }
+      }
+      if (relBal > 0 && msg.rev.length) { // higher neighbor, forwards the rev's
+        let loopFound = false;
+        msg.rev.map(probe => {
+          if (this._agent._ledgers[k]._probesSeen.fwd.indexOf(probe) !== -1) {
+            console.log('loop found from rev probe!', probe, k, this._myNick, this._peerNick, JSON.stringify(this._agent._ledgers[k]._probesSeen));
+            loopFound = true;
+            // commenting this out to avoid finding the same loop twice:
+            // this._useLoop(probe, this.peerNick, k);
+          }
+        });
+        if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
+          debug.log('no loops found from rev probe', {fromNick: this._peerNick, k}, this._myNick, msg.rev, this._agent._ledgers[k]._probesSeen.fwd);
+          setTimeout(() => {
+            this._agent._ledgers[k].send(JSON.stringify({
+              msgType: 'PROBE',
+              fwd: [],
+              rev: msg.rev
+            }));
+          }, 100);
+        }
+      }
+    }
+  },
+
   _handleMessage: function(msg) {
     debug.log('seeing', this._peerNick, msg);
     this.handleMessage(msg);
@@ -72,7 +125,8 @@ Ledger.prototype = {
     } else if (msg.msgType === 'FULFILL') {
       this._handleFulfill(msg);
     } else if (msg.msgType === 'PROBE') {
-      this._agent._handleProbe(this._peerNick, msg);
+      debug.log('handling probe', this._myNick, this._peerNick, msg);
+      this._handleProbe(msg);
     }
   },
   create: function(amount, condition, routeId) {
