@@ -150,7 +150,7 @@ Ledger.prototype = {
       this._createProbe(); // peer now owes me money, so I'll send them a rev probe
     } else if (msg.msgType === 'COND') {
       if (msg.msgId > 20) { panic(); }
-      setTimeout(() => this._agent._handleCond(this._peerNick, msg), 100);
+      setTimeout(() => this._handleCond(msg), 100);
     } else if (msg.msgType === 'FULFILL') {
       this._handleFulfill(msg);
     } else if (msg.msgType === 'PROBE') {
@@ -230,6 +230,53 @@ Ledger.prototype = {
       return promise;
     }
   },
+
+  _handleCond: function(msg) {
+    if (this._agent._preimages[msg.condition]) {
+      debug.log('replying with fulfill!', msg.condition, this._agent._preimages[msg.condition].toString('hex'))
+      const reply = {
+        msgType: 'FULFILL',
+        msgId: msg.msgId,
+        sender: this._peerNick,
+        preimage: this._agent._preimages[msg.condition].toString('hex')
+      };
+      this.send(JSON.stringify(reply));
+      this.handleMessage(reply);
+    } else {
+      debug.log('hashlock not mine', this._myNick, msg.condition, Object.keys(this._agent._preimages));
+      let suggestLowerAmount = false;
+      const thisBal = this.getBalance();
+      for(let toNick in this._agent._ledgers) {
+        debug.log('considering a forward to', toNick, thisBal, this._agent._ledgers[toNick].getBalance());
+        // when forwarding a COND, your incoming balance will increase and your outgoing balance will decrease
+        // so it's useful if your outgoing balance is currently higher:
+        const relBal = this._agent._ledgers[toNick].getBalance() - thisBal;
+        // example: outBal is 4, inBal is 1; relBal is 3, amount is 2;
+        // afterwards, outBal will be 2 and inBal will be 3, so relBal will be -1 (which is closer to zero than current 3)
+        if (relBal > msg.amount) { // neighbor is higher, forward it
+          debug.log('forwarding!', relBal, msg.amount, this._peerNick, this._myNick, toNick);
+          fwdMsg = this._agent._ledgers[toNick].create(msg.amount, msg.condition, msg.routeId);
+          this._agent._ledgers[toNick]._pendingCond[msg.msgId] = {
+            fromNick: this._peerNick,
+            toNick,
+            msg
+          };
+          this._agent._ledgers[toNick].send(JSON.stringify(fwdMsg));
+          this._agent._ledgers[toNick].handleMessage(fwdMsg);
+          return;
+        } else if (relBal > 0) {
+          suggestLowerAmount = true;
+        }
+      }
+      this.send(JSON.stringify({
+        msgType: 'REJECT',
+        sender: msg.sender,
+        msgId: msg.msgId,
+        reason: (suggestLowerAmount ? 'try a lower amount' : 'not my hashlock and no onward route found')
+      }));
+    }
+  },
+
   _handleFulfill: function(msg) {
     // TODO: check whether the preimage is valid
     if (this._pendingCond[msg.msgId]) {
