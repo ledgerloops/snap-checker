@@ -82,7 +82,7 @@ Ledger.prototype = {
     // const newProbe = randomBytes(8).toString('hex');
     const newProbe = this._myNick + '-' + randomBytes(8).toString('hex');
     this.send({
-      msgType: 'PROBE',
+      msgType: 'PROBES',
       cwise: [ newProbe ],
       fwise: []
     });
@@ -93,7 +93,7 @@ Ledger.prototype = {
       // Our fside balance will go down, so find one whose balance is higher:
       if (this._agent._ledgers[fsideLedger].getBalance() > thisBal) {
         this._agent._ledgers[fsideLedger].send({
-          msgType: 'PROBE',
+          msgType: 'PROBES',
           cwise: [],
           fwise: [ newProbe ]
         });
@@ -135,7 +135,7 @@ Ledger.prototype = {
         debug.log('no loops found from cside probe', this._peerNick, this._myNick, msg.cwise, this._probesReceived.fwise);
         setTimeout(() => {
           this.send({
-            msgType: 'PROBE',
+            msgType: 'PROBES',
             cwise: msg.cwise,
             fwise: []
           });
@@ -155,7 +155,7 @@ Ledger.prototype = {
         debug.log('no loops found from fwise probe', this._peerNick, this._myNick, msg.fwise, this._probesReceived.cwise);
         setTimeout(() => {
           this.send({
-            msgType: 'PROBE',
+            msgType: 'PROBES',
             cwise: [],
             fwise: msg.fwise
           });
@@ -256,7 +256,7 @@ Ledger.prototype = {
         debug.log('Rejected', msg);
         break;
       }
-      case 'PROBE': {
+      case 'PROBES': {
         if (!outgoing) {
           this._handleProbe(msg);
         }
