@@ -13,7 +13,7 @@ function verifyHex(preimageHex, hashHex) {
   return Buffer.from(hashHex, 'hex').equals(correctHash);
 }
 
-function Ledger(peerNick, myNick, unit, agent) {
+function Ledger(peerNick, myNick, unit, agent, channel) {
   this._peerNick = peerNick;
   this._myNick = myNick;
   this._unit = unit;
@@ -31,7 +31,7 @@ function Ledger(peerNick, myNick, unit, agent) {
   this._probesSeen = { fwd: [], rev: [] };
   this._agent = agent;
   this.myNextId = 0;
-  this._doSend = messaging.addChannel(peerNick, myNick, (msgStr) => {
+  this._doSend = messaging.addChannel(channel, myNick, peerNick, (msgStr) => {
     return this._handleMessage(JSON.parse(msgStr));
   });
 }
@@ -41,21 +41,26 @@ Ledger.prototype = {
     this._handleMessage(obj, true);
     this._doSend(JSON.stringify(obj));
   },
-  _useLoop: function(routeId, otherPeer) {
-    // This Peer at this ledger wants to receive a COND.
-    // The other peer wants to send you a COND.
-    // this is beneficial if revPeer owes you money (pos balance) and you owe this ledger's Peer money (neg balance)
+  _startLoop: function(routeId, otherPeer) {
+    // Other Peer has sent us a forward probe, meaning they want to send a COND.
+    // This Ledger said it's usable, so we should start a loop
+    // But let's just double-check the balances, and choose a loop amount of half the diff:
   
-    const balOut = this._agent._ledgers[otherPeer].getBalance(); // should be neg
-    const balIn = this.getBalance();  // should be pos
+    const balOut = this._agent._ledgers[otherPeer].getBalance(); // should be neg because it will go up
+    const balIn = this.getBalance();  // should be pos because it will go down
     const diff = balIn - balOut;
     const amount = diff/2;
     debug.log('using loop', this._myNick, { balOut, balIn, diff, amount });
     const preimage = randomBytes(256);
     const hashHex = sha256(preimage).toString('hex');
     this._agent._preimages[hashHex] = preimage;
-    msg = this.create(amount, hashHex, routeId);
-    this.send(msg);
+    if (amount <0) {
+      debug.log('amount below zero!', amount);
+      panic();
+    }
+    // the COND should be sent to the other peer:
+    msg = this._agent._ledgers[otherPeer].create(amount, hashHex, routeId);
+    this._agent._ledgers[otherPeer].send(msg);
   },
 
   _createProbe: function() {
@@ -80,17 +85,17 @@ Ledger.prototype = {
       }
     }
   },
-  considerProbe: function(peerBalance, msg) {
+  considerProbe: function(peerBalance, msg, receivedFromPeer) {
     const relBal = this.getBalance() - peerBalance;
     let usableProbes = [];
     if (relBal < 0 && msg.fwd.length) { // lower neighbor, forwards the fwd's
       let loopFound = false;
       msg.fwd.map(probe => {
         if (this._probesSeen.rev.indexOf(probe) !== -1) {
-          console.log('loop found from fwd probe!', probe, this._myNick, JSON.stringify(this._probesSeen));
-          // Peer has sent a forward probe, meaning they want to send a COND.
-          // k has sent a rev probe, meaning they want to receive a COND.
-          // this is beneficial if Peer owes you money (pos balance) and you owe k money (neg balance)
+          console.log(`${this._myNick} found loop found from fwd probe that ${receivedFromPeer} sent, usable for ledger with ${this._peerNick}!`, probe, JSON.stringify(this._probesSeen));
+          // receivedFromPeer has sent a forward probe, meaning they want to send a COND.
+          // This Peer has previously sent a rev probe, meaning they want to receive a COND.
+          // this is beneficial if receivedFromPeer owes you money (pos balance) and you owe this peer money (neg balance)
           loopFound = true;
           usableProbes.push(probe);
         }
@@ -134,9 +139,12 @@ Ledger.prototype = {
     this._probesSeen.rev = this._probesSeen.rev.concat(msg.rev);
     const thisBal = this.getBalance();
     for(let k in this._agent._ledgers) {
-      const usableProbes = this._agent._ledgers[k].considerProbe(thisBal, msg);
+      const usableProbes = this._agent._ledgers[k].considerProbe(thisBal, msg, this._peerNick);
       usableProbes.map(probe => {
-        this._useLoop(probe, k);
+        // This Peer has sent a forward probe, meaning they want to send a COND.
+        // Our ledger with k said it's usable, meaning that ledger wants to forward a COND.
+        // So they should start a loop
+        this._agent._ledgers[k]._startLoop(probe, this._peerNick);
       });
     }
   },
@@ -265,10 +273,16 @@ Ledger.prototype = {
             toNick,
             msg
           };
-          this._agent._ledgers[toNick].send(fwdMsg);
+          debug.log(`${this._myNick} is forwarding COND from ${this._peerNick} to ${toNick}`, msg);
+          debug.log(`Probes seen at incoming peer`, this._probesSeen);
+          debug.log(`Probes seen at outgoing peer`, this._agent._ledgers[toNick]._probesSeen);
+
+          // this._agent._ledgers[toNick].send(fwdMsg);
           return;
         } else if (relBal > 0) {
           suggestLowerAmount = true;
+        } else {
+          debug.log(`I don't want to forward this COND from ${this._peerNick} to ${toNick} because my balance with ${toNick} is ${this._agent._ledgers[toNick].getBalance()} and my balance with ${this._peerNick} is ${thisBal}`);
         }
       }
       this.send({
