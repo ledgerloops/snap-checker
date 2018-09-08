@@ -27,6 +27,7 @@ if (typeof window !== 'undefined') {
 
 function displayAgents() {
   var html = '';
+  let loops = {};
   for (var nick in agents) {
     html += `<p>${nick}:</p><ul>`;
     for (var neighbor in agents[nick]._ledgers) {
@@ -35,6 +36,14 @@ function displayAgents() {
       for (k in agents[nick]._ledgers[neighbor]._committed) {
         const entry = agents[nick]._ledgers[neighbor]._committed[k];
         html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
+        if (entry.msgType === 'COND') {
+          if (!loops[entry.routeId]) {
+            loops[entry.routeId] = {
+              start: entry.sender
+            };
+          }
+          loops[entry.routeId][entry.sender] = entry.beneficiary;
+        }
       }
       for (k in agents[nick]._ledgers[neighbor]._pending) {
         const entry = agents[nick]._ledgers[neighbor]._pending[k];
@@ -43,6 +52,18 @@ function displayAgents() {
       html += '</ul></li>';
     }
     html += `</ul>`;
+  }
+  for (let routeId in loops) {
+    html += `<h2>Loop ${routeId}:</h2><p>`;
+    let cursor = loops[routeId].start;
+    do {
+      html += `-> ${cursor}`;
+      cursor = loops[routeId][cursor];
+      if (!cursor) {
+        break;
+      }
+    } while (cursor != loops[routeId].start);
+    html += '</p>';
   }
   document.getElementById('data').innerHTML = html;
 }
