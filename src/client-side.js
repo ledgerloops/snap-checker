@@ -16,10 +16,6 @@ debug.setLevel(true);
 messaging.autoFlush();
 
 function sendAdd(from, to, amount, currency) {
-  ensureAgent(from);
-  ensureAgent(to);
-  agents[from].ensurePeer(to);
-  agents[to].ensurePeer(from);
   const msg = agents[from]._ledgers[to].create(amount);
   agents[from]._ledgers[to].send(msg);
 }
@@ -123,16 +119,16 @@ document.getElementById('send-5').onclick = function() {
   sendButton(5);
 };
 
-var initialAgents = ['Mia', 'Vincent', 'Marsellus'];
-ensureAgent(initialAgents[0]);
-ensureAgent(initialAgents[1]);
+ensureAgent('Mia');
 agents['Mia'].ensurePeer('Marsellus', 'ws://localhost:8081');
 agents['Mia'].ensurePeer('Vincent');
 
+ensureAgent('Vincent');
 agents['Vincent'].ensurePeer('Marsellus', 'ws://localhost:8082');
 agents['Vincent'].ensurePeer('Mia');
 
-setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1, 'USD'), 1000);
-setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 1, 'USD'), 1100);
-// Marsellus has to do this server-side: setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1, 'USD'), 200);
+setTimeout(() => sendAdd('Mia', 'Vincent', 1, 'USD'), 2000);
+setTimeout(() => sendAdd('Vincent', 'Marsellus', 1, 'USD'), 3000);
+// And Marsellus has to do this server-side
+
 setInterval(displayAgents, 1000);

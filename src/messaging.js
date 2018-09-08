@@ -53,7 +53,7 @@ module.exports = {
       let peer;
       wss.on('connection', function connection(ws) {
         if (!peer) {
-          console.log(`${peerNick} has connected!`);
+          console.log(`Client ${peerNick} has connected to server ${myNick} on port ${medium}!`);
           peer = ws;
         }
         ws.on('message', (msg) => {
@@ -65,27 +65,28 @@ module.exports = {
         if (!peer) {
           console.log(`failed to send message from ${myNick} to ${peerNick} because nobody is connected on port ${medium}.`);
         } else {
-          console.log(`sending message from server ${myNick} to client {$peerNick}`, msg);
+          console.log(`sending message from server ${myNick} to client ${peerNick}`, msg);
           peer.send(msg);
         }
       };
     } else if (typeof medium == 'string') {
       const ws = new WebSocket(medium);
       let open = false;
-      ws.onopen = function open() {
-        console.log(`${peerNick} is connected to ${myNick} over ${medium}.`);
+      ws.onopen = () => {
+        open = true;
+        console.log(`Client ${myNick} is connected to server ${peerNick} over ${medium}.`);
       };
       
       ws.onmessage = (msg) => {
         console.log(`Client ${myNick} receives message from server ${peerNick}`, msg);
-        cb(msg);
+        cb(msg.data);
       };
 
       return (msg) => {
         if (!open) {
-          console.log(`failed to send message from ${myNick} to ${peerNick} because nobody is listening on ${medium}.`);
+          console.log(`failed to send message from client ${myNick} to server ${peerNick} because nobody is listening on ${medium}.`);
         } else {
-          console.log(`sending message from client ${myNick} to server {$peerNick}`, msg);
+          console.log(`sending message from client ${myNick} to server ${peerNick}`, msg);
           ws.send(msg);
         }
       };

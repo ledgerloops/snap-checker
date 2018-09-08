@@ -31,7 +31,7 @@ function Ledger(peerNick, myNick, unit, agent, channel) {
   this._probesSeen = { fwd: [], rev: [] };
   this._agent = agent;
   this.myNextId = 0;
-  this._doSend = messaging.addChannel(channel, peerNick, myNick, (msgStr) => {
+  this._doSend = messaging.addChannel(channel, myNick, peerNick, (msgStr) => {
     return this._handleMessage(JSON.parse(msgStr));
   });
 }
