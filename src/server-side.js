@@ -36,8 +36,8 @@ function displayAgents() {
   console.log(text);
 }
 
-setTimeout(() => {
-  const msg = agents['Marsellus']._ledgers['Mia'].create(1);
-  agents['Marsellus']._ledgers['Mia'].send(msg);
-}, 10000);
+// setTimeout(() => {
+//   const msg = agents['Marsellus']._ledgers['Mia'].create(1);
+//   agents['Marsellus']._ledgers['Mia'].send(msg);
+// }, 10000);
 // setInterval(displayAgents, 1000);
