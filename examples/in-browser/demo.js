@@ -1,6 +1,6 @@
-var debug = require('ledgerloops').debug;
-var Agent = require('ledgerloops').Agent;
-var messaging = require('ledgerloops').messaging;
+var debug = LedgerLoops.debug;
+var Agent = LedgerLoops.Agent;
+var messaging = LedgerLoops.messaging;
 
 var agents = {
 };

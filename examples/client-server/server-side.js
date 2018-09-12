@@ -1,5 +1,5 @@
-var debug = require('./debug');
-var Agent = require('./agents');
+var debug = require('../..').debug;
+var Agent = require('../..').Agent;
 
 var agents = {
 };

@@ -1,6 +1,6 @@
-var debug = require('./debug');
-var Agent = require('./agents');
-var messaging = require('./messaging');
+var debug = LedgerLoops.debug;
+var Agent = LedgerLoops.Agent;
+var messaging = LedgerLoops.messaging;
 
 var agents = {
 };
@@ -67,78 +67,6 @@ function displayAgents() {
   }
   document.getElementById('data').innerHTML = html;
 }
-
-
-function sendButton(amount) {
-  var from = document.getElementById('sender').value;
-  var to = document.getElementById('receiver').value;
-  if (from.length === 0) {
-    pickButton('sender');
-    from = document.getElementById('sender').value;
-  }
-  if (to.length === 0) {
-    pickButton('receiver');
-    to = document.getElementById('receiver').value;
-  }
-  if (from === to) {
-    window.alert('Receiver nick should be different from sender nick');
-  } else {
-    sendAdd(from, to, amount, 'USD');
-  }
-}
-
-function pickAgent(actor) {
-  var nicks = [
-    'Marsellus',
-    'Mia',
-    'Vincent',
-    'Jules',
-    'Pumpkin',
-    'Honeybunny',
-    'Butch',
-    'Fabienne',
-  ];
-  return nicks[Math.floor(Math.random()*nicks.length)];
-}
-
-function pickAgents(num, have = []) {
-  if (num === 0) {
-    return have;
-  }
-  var newAgent = pickAgent();
-  if (have.indexOf(newAgent) !== -1) {
-    // try again to pick one we don't have yet:
-    return pickAgents(num, have);
-  }
-  have.push(newAgent);
-  return pickAgents(num-1, have);
-}
-
-function pickButton(actor) {
-  document.getElementById(actor).value = pickAgent();
-}
-
-document.getElementById('pick-sender').onclick = function() {
-  pickButton('sender');
-};
-
-document.getElementById('pick-receiver').onclick = function() {
-  pickButton('receiver');
-};
-
-document.getElementById('switch').onclick = function() {
-  var oldSender = document.getElementById('sender').value;
-  document.getElementById('sender').value = document.getElementById('receiver').value;
-  document.getElementById('receiver').value = oldSender;
-};
-
-document.getElementById('send-1').onclick = function() {
-  sendButton(1);
-};
-
-document.getElementById('send-5').onclick = function() {
-  sendButton(5);
-};
 
 ensureAgent('Mia');
 agents['Mia'].ensurePeer('Marsellus', 'ws://localhost:8081');
