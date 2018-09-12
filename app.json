@@ -1,0 +1,7 @@
+{
+  "name": "LedgerLoops",
+  "description": "LedgerLoops reference implementation, plus monetized Blog Demo, deployable to Heroku",
+  "repository": "https://github.com/ledgerloops/ledgerloops",
+  "logo": "https://node-js-sample.herokuapp.com/node.png",
+  "keywords": ["node"]
+}
