@@ -7,7 +7,8 @@
     "test": "test"
   },
   "dependencies": {
-    "hubbie": "^1.0.0",
+    "hubbie": "^1.1.1",
+    "randombytes": "^2.0.6",
     "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
   },
   "devDependencies": {
@@ -23,6 +24,7 @@
   "scripts": {
     "test": "grunt test",
     "build": "grunt build",
+    "start": "node examples/monetized-blog-heroku/agent-heroku.js",
     "watch": "grunt watch"
   },
   "testling": {
