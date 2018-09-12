@@ -2,7 +2,7 @@
   "name": "ledgerloops",
   "version": "0.8.0",
   "description": "Hashlocked IOUs make the world go round",
-  "main": "examples/monetized-blog/agent-heroku.js",
+  "main": "src/index.js",
   "directories": {
     "test": "test"
   },
