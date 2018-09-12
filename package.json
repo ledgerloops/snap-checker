@@ -23,7 +23,7 @@
   "scripts": {
     "test": "grunt test",
     "build": "grunt build",
-    "start": "examples/monetized-blog/agent-heroku.js",
+    "start": "node examples/monetized-blog/agent-heroku.js",
     "watch": "grunt watch"
   },
   "testling": {
