@@ -15,5 +15,6 @@ var server = http.createServer((req, res) => {
     res.end('Page not found');
   }
 });
+console.log('listening on port', process.env.PORT);
 server.listen(parseInt(process.env.PORT));
 agent.ensurePeer('reader', server);
