@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>LedgerLoops Demo (press F12 to see the console)</title>
+    <meta charset="utf-8" />
+    <style>
+    </style>
+  </head>
+  <body>
+    <h1>LedgerLoops Monetized Blog demo (blog part)</h1>
+    <p>This blog includes the following snippet:</p>
+    <code>
+  function go() {
+    if (window.setLedgerLoopsChannel) {
+      console.log('setting LedgerLoops channel');
+      window.setLedgerLoopsChannel('ws://localhost:8080');
+    } else {
+      console.log('waiting...');
+      setTimeout(go, 1000);
+    }
+  }
+  go();
+    </code>
+  </body>
+  <script>
+    function go() {
+      if (window.setLedgerLoopsChannel) {
+        console.log('setting LedgerLoops channel');
+        window.setLedgerLoopsChannel('ws://localhost:8080');
+      } else {
+        console.log('waiting...');
+        setTimeout(go, 1000);
+      }
+    }
+    go();
+  </script>
+</html>
