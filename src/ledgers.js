@@ -1,5 +1,5 @@
 const debug = require('./debug');
-var messaging = require('./messaging');
+var messaging = require('hubbie');
 var randomBytes = require('randombytes');
 var shajs = require('sha.js')
 
