@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "hubbie": "^1.0.0",
+    "randombytes": "^2.0.6",
     "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
   },
   "devDependencies": {
