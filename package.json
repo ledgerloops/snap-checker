@@ -1,15 +1,12 @@
 {
   "name": "ledgerloops",
-  "version": "0.4.0",
-  "description": "Cryptographically-triggered IOUs make the world go round",
-  "main": "index.js",
+  "version": "0.8.0",
+  "description": "Hashlocked IOUs make the world go round",
+  "main": "src/index.js",
   "directories": {
     "test": "test"
   },
   "dependencies": {
-    "ddcd-dfs": "0.0.1",
-    "isomorphic-ws": "^4.0.1",
-    "ledgerloops-peer": "0.0.1",
     "sha.js": "git+https://github.com/crypto-browserify/sha.js.git",
     "ws": "^6.0.0"
   },

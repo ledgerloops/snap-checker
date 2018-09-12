@@ -25,8 +25,8 @@ module.exports = function(grunt) {
         }
       },
       main: {
-        src: 'src/client-side.js',
-        dest: 'js/bundle.js',
+        src: 'src/drop.js',
+        dest: 'js/ledgerloops.js',
       }
     },
     watch: {

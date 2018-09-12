@@ -1,21 +1,7 @@
-# LedgerLoops-WebCrypto
+# LedgerLoops
 
-WebCrypto-based demo (not production-ready)
+Examples:
 
-
-This is the browserify source of the [demo page](https://ledgerloops.com/demo.html).
-
-# Deprecated!
-
-I'm currently rewriting all of this from scratch ---
-it has served me well while developing the protocol, but it was never meant as
-more than a demo implementation for experimentation.
-
-The real product, so far, of this research project is the current version of the LedgerLoops protocol, as described in the
-[whitepaper](https://ledgerloops.com/doc/whitepaper.pdf).
-
-
-[![Build Status](https://img.shields.io/travis/michielbdejong/ledgerloops.svg?style=flat)](http://travis-ci.org/michielbdejong/ledgerloops)
-
-![Testling](https://ci.testling.com/michielbdejong/ledgerloops.png)
-
+* in-browser: shows a graph of friends, you can tell friends to give each other money, and they will cooperate to find and resolve ledger loops. See the README in that folder for instructions.
+* client-server: example where Marsellus lives server-side, while Mia and Vincent live client-side. Shows and tests how WebSockets are used. See the README in that folder for instructions.
+* monetized-blog: static page, combined with a WebSocket server, that will accrue money when a user with the LedgerLoops browser extension visits this page. This demo is still under construction. See https://github.com/ledgerloops/ledgerloops/issues/21.
