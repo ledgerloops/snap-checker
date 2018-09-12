@@ -7,8 +7,8 @@
     "test": "test"
   },
   "dependencies": {
-    "sha.js": "git+https://github.com/crypto-browserify/sha.js.git",
-    "ws": "^6.0.0"
+    "hubbie": "^1.0.0",
+    "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
   },
   "devDependencies": {
     "grunt": "^1.0.1",
