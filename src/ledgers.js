@@ -1,9 +1,6 @@
 const debug = require('./debug');
 var Hubbie = require('hubbie').Hubbie;
-var Messaging = require('hubbie').Messaging;
-// singleton in-memory:
-var messaging = new Messaging();
-
+var messaging = require('./messaging');
 var randomBytes = require('randombytes');
 var shajs = require('sha.js')
 
