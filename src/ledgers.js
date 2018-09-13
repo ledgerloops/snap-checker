@@ -1,5 +1,6 @@
 const debug = require('./debug');
-var messaging = require('hubbie');
+var Hubbie = require('hubbie').Hubbie;
+var messaging = require('./messaging');
 var randomBytes = require('randombytes');
 var shajs = require('sha.js')
 
@@ -13,7 +14,7 @@ function verifyHex(preimageHex, hashHex) {
   return Buffer.from(hashHex, 'hex').equals(correctHash);
 }
 
-function Ledger(peerNick, myNick, unit, agent, channel) {
+function Ledger(peerNick, myNick, unit, agent, medium) {
   this._peerNick = peerNick;
   this._myNick = myNick;
   this._unit = unit;
@@ -31,15 +32,44 @@ function Ledger(peerNick, myNick, unit, agent, channel) {
   this._probesReceived = { cwise: [], fwise: [] };
   this._agent = agent;
   this.myNextId = 0;
-  this._doSend = messaging.addChannel(channel, myNick, peerNick, (msgStr) => {
-    return this._handleMessage(JSON.parse(msgStr));
-  });
+  if (medium) {
+    let config;
+    if (typeof medium === 'number') {
+      config = { listen: medium };
+    } else if (typeof medium === 'object') {
+      config = { server: medium };
+    } else if (typeof medium === 'string') {
+      config = {
+        upstreams: [ {
+          url: medium,
+          name: 'client-server',
+          token: 'secret'
+        } ]
+      };
+    }
+    let hubbie = new Hubbie(config, (peerId) => {
+      this._doSend = (msg) => {
+        return hubbie.send(msg, peerId);
+      };
+    }, (obj, peerId) => {
+      this._handleMessage(obj);
+    });
+    hubbie.start().then(() => {
+    });
+  } else {
+    this._doSendStr = messaging.addChannel(myNick, peerNick, (msgStr) => {
+      return this._handleMessage(JSON.parse(msgStr));
+    });
+    this._doSend = (obj) => {
+      return this._doSendStr(JSON.stringify(obj));
+    };
+  }
 }
 
 Ledger.prototype = {
   send: function(obj) {
     this._handleMessage(obj, true);
-    this._doSend(JSON.stringify(obj));
+    this._doSend(obj);
   },
 
   //                           >>>> ADD >>>       >>>> ADD >>>
@@ -60,7 +90,7 @@ Ledger.prototype = {
     // fsidePeer has sent us a cside probe, meaning they want to send a COND.
     // This Ledger said it's usable, so we should start a loop
     // But let's just double-check the balances, and choose a loop amount of half the diff:
-  
+
     const fsideBal = this._agent._ledgers[fsidePeer].getBalance(); // our fside balance should be low because it will go up
     const csideBal = this.getBalance();  // our cside balance should be high because it will go down
     const diff = csideBal - fsideBal;
@@ -343,7 +373,7 @@ Ledger.prototype = {
       debug.log(this._myNick + ': cannot find backer, I must have been the loop initiator.');
     }
   },
-  
+
   _handleReject: function(msg) {
   }
 };

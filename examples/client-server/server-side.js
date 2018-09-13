@@ -10,11 +10,11 @@ function ensureAgent(nick) {
   }
 }
 
+debug.setLevel(true);
+
 ensureAgent('Marsellus');
 agents['Marsellus'].ensurePeer('Mia', 8081);
 agents['Marsellus'].ensurePeer('Vincent', 8082);
-
-debug.setLevel(true);
 
 function displayAgents() {
   var text = '-------------------------------------\n';
