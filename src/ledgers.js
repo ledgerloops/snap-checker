@@ -1,5 +1,9 @@
 const debug = require('./debug');
-var messaging = require('hubbie');
+var Hubbie = require('hubbie').Hubbie;
+var Messaging = require('hubbie').Messaging;
+// singleton in-memory:
+var messaging = new Messaging();
+
 var randomBytes = require('randombytes');
 var shajs = require('sha.js')
 
@@ -13,7 +17,7 @@ function verifyHex(preimageHex, hashHex) {
   return Buffer.from(hashHex, 'hex').equals(correctHash);
 }
 
-function Ledger(peerNick, myNick, unit, agent, channel) {
+function Ledger(peerNick, myNick, unit, agent, medium) {
   this._peerNick = peerNick;
   this._myNick = myNick;
   this._unit = unit;
@@ -31,9 +35,26 @@ function Ledger(peerNick, myNick, unit, agent, channel) {
   this._probesReceived = { cwise: [], fwise: [] };
   this._agent = agent;
   this.myNextId = 0;
-  this._doSend = messaging.addChannel(channel, myNick, peerNick, (msgStr) => {
-    return this._handleMessage(JSON.parse(msgStr));
-  });
+  if (medium) {
+    let config;
+    if (typeof medium === 'number') {
+      config = { listen: medium };
+    } else if (typeof medium === 'object') {
+      config = { server: medium };
+    } else if (typeof medium === 'string') {
+      config = { upstreams: [ medium ] };
+    }
+    let hubbie = new Hubbie(config, (peerId) => {
+      console.log('hubbie connected', peerId);
+    }, (obj, peerId) => {
+      this._handleMessage(obj);
+    });
+    this._doSend = hubbie.send.bind(hubbie);
+  } else {
+    this._doSend = messaging.addChannel(myNick, peerNick, (msgStr) => {
+      return this._handleMessage(JSON.parse(msgStr));
+    });
+  }
 }
 
 Ledger.prototype = {
