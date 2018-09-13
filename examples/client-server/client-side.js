@@ -13,7 +13,7 @@ function ensureAgent(nick) {
 
 debug.setLevel(true);
 
-messaging.autoFlush();
+messaging.autoFlush = true;
 
 function sendAdd(from, to, amount, currency) {
   const msg = agents[from]._ledgers[to].create(amount);
