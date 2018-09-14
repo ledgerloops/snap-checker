@@ -33,8 +33,7 @@ PeerHandler.prototype = {
   _handleAdd: function(msg) {
     const reply = {
       msgType: 'ACK',
-      msgId: msg.msgId,
-      sender: this._peerNick
+      msgId: msg.msgId
     };
     this.send(reply);
     this._createProbe(); // peer now owes me money, so I'll send them a fside probe
@@ -46,7 +45,6 @@ PeerHandler.prototype = {
       const reply = {
         msgType: 'FULFILL',
         msgId: msg.msgId,
-        sender: this._peerNick,
         preimage: this._agent._preimages[msg.condition].toString('hex')
       };
       this.send(reply);
@@ -83,7 +81,6 @@ PeerHandler.prototype = {
       }
       this.send({
         msgType: 'REJECT',
-        sender: msg.sender,
         msgId: msg.msgId,
         reason: (suggestLowerAmount ? 'try a lower amount' : 'not my hashlock and no onward route found')
       });
@@ -98,13 +95,11 @@ PeerHandler.prototype = {
       // FIXME: sending this ACK after the FULFILL has already committed the transaction confuses things!
       // this.send({
       //   msgType: 'ACK',
-      //   sender: this._myNick,
       //   msgId: msg.msgId
       // });
       debug.log('cond-level orig:', this._pendingCond[msg.msgId]);
       const backMsg = {
         msgType: 'FULFILL',
-        sender: backer,
         msgId: this._pendingCond[msg.msgId].msg.msgId,
         preimage: msg.preimage
       };

@@ -34,14 +34,15 @@ function displayAgents() {
       let k;
       for (k in agents[nick]._peerHandlers[neighbor]._ledger._committed) {
         const entry = agents[nick]._peerHandlers[neighbor]._ledger._committed[k];
+        let sender = (k.startsWith('me') ? nick : neighbor);
         html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
         if (entry.msgType === 'COND') {
           if (!loops[entry.routeId]) {
             loops[entry.routeId] = {
-              start: entry.sender
+              start: sender 
             };
           }
-          loops[entry.routeId][entry.sender] = entry.beneficiary;
+          loops[entry.routeId][sender] = entry.beneficiary;
         }
       }
       for (k in agents[nick]._peerHandlers[neighbor]._ledger._pending) {
