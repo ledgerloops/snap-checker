@@ -1,11 +1,18 @@
 const debug = require('./debug');
 var Ledger = require('./ledger');
+var randomBytes = require('randombytes');
+var shajs = require('sha.js')
+
+function sha256(x) {
+  return shajs('sha256').update(x).digest();
+}
 
 function PeerHandler(peerNick, myNick, unit, agent, medium) {
   this._peerNick = peerNick;
   this._myNick = myNick;
   this._agent = agent;
   this._ledger = new Ledger(peerNick, myNick, unit, this, medium);
+  this._probesReceived = { cwise: [], fwise: [] };
   this._pendingCond = {};
 }
 
@@ -23,7 +30,15 @@ PeerHandler.prototype = {
   create: function(amount, hashHex, routeId) {
     return this._ledger.create(amount, hashHex, routeId);
   },
-
+  _handleAdd: function(msg) {
+    const reply = {
+      msgType: 'ACK',
+      msgId: msg.msgId,
+      sender: this._peerNick
+    };
+    this.send(reply);
+    this._createProbe(); // peer now owes me money, so I'll send them a fside probe
+  },
   _handleCond: function(msg) {
     debug.log(`Agent ${this._myNick} handles COND that comes in from ${this._peerNick}`, msg);
     if (this._agent._preimages[msg.condition]) {
@@ -101,6 +116,129 @@ PeerHandler.prototype = {
   },
 
   _handleReject: function(msg) {
+  },
+
+    ////////////
+   // PROBES //
+  ////////////
+
+  //                           >>>> ADD >>>       >>>> ADD >>>
+  //                             down | up          down | up
+  //                           <<<< ACK <<<       <<<< ACK <<<
+
+  //                 cside peer -[low|high]- agent -[low|high]- fside peer
+
+  //                           < cwise PROBE <    < cwise PROBE <
+  //                           > fwise PROBE >    > fwise PROBE >
+
+  //                            <<< COND <<<      <<< COND <<<
+  //                             up | down          up | down
+  //                            > FULFILL >>      > FULFILL >>
+
+  _handleProbe: function(msg) {
+    this._probesReceived.cwise = this._probesReceived.cwise.concat(msg.cwise);
+    this._probesReceived.fwise = this._probesReceived.fwise.concat(msg.fwise);
+    const thisBal = this.getBalance();
+    for(let otherPeer in this._agent._peerHandlers) {
+      this._agent._peerHandlers[otherPeer].considerProbe(thisBal, msg, this._peerNick);
+    }
+  },
+
+
+  // to be executed in cside ledger:
+  _startLoop: function(routeId, fsidePeer) {
+    // fsidePeer has sent us a cside probe, meaning they want to send a COND.
+    // This Ledger said it's usable, so we should start a loop
+    // But let's just double-check the balances, and choose a loop amount of half the diff:
+
+    const fsideBal = this._agent._peerHandlers[fsidePeer].getBalance(); // our fside balance should be low because it will go up
+    const csideBal = this.getBalance();  // our cside balance should be high because it will go down
+    const diff = csideBal - fsideBal;
+    const amount = diff/2;
+    debug.log('using loop', this._myNick, { fsideBal, csideBal, diff, amount });
+    const preimage = randomBytes(256);
+    const hashHex = sha256(preimage).toString('hex');
+    this._agent._preimages[hashHex] = preimage;
+    if (amount <0) {
+      debug.log('amount below zero!', amount);
+      panic();
+    }
+    // the COND should be sent to this ledger's peer (cside):
+    msg = this.create(amount, hashHex, routeId);
+    this.send(msg);
+  },
+
+  // to be executed on all other side when a probe comes in from one peer
+  considerProbe: function(ourOtherBal, msg, receivedFromPeer) {
+    const relBal = this.getBalance() - ourOtherBal;
+    if (this.getBalance() > ourOtherBal && msg.cwise.length) { // this balance is higher, potential cside, forward the cwise probes
+      let loopFound = false;
+      msg.cwise.map(probe => {
+        if (this._probesReceived.fwise.indexOf(probe) !== -1) {
+          console.log(`${this._myNick} found loop found from cwise probe that ${receivedFromPeer} sent, usable for ledger with ${this._peerNick}!`, probe, JSON.stringify(this._probesReceived));
+          // receivedFromPeer has sent a cwise probe, meaning they want to send us a COND.
+          // This Peer has previously sent us an fwise probe, meaning they want us to send them a COND.
+          // this is beneficial if you owe receivedFromPeer money (low balance) and this peer owes you money (high balance)
+          // So we should start a loop
+          this._startLoop(probe, receivedFromPeer);
+          loopFound = true;
+        }
+      });
+      if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
+        debug.log('no loops found from cside probe', this._peerNick, this._myNick, msg.cwise, this._probesReceived.fwise);
+        setTimeout(() => {
+          this.send({
+            msgType: 'PROBES',
+            cwise: msg.cwise,
+            fwise: []
+          });
+        }, 100);
+      }
+    }
+    if (this.getBalance() < ourOtherBal && msg.fwise.length) { // this balance is lower, potential fside, forward the fwise probes
+      let loopFound = false;
+      msg.fwise.map(probe => {
+        if (this._probesReceived.cwise.indexOf(probe) !== -1) {
+          console.log('loop found from fwise probe!', probe, this._myNick, this._peerNick, JSON.stringify(this._probesReceived));
+          loopFound = true;
+          // stop passing on the fwise probe, but don't initiate the loop, leave that to the node that discovers the cwise probe
+        }
+      });
+      if (!loopFound) { // TODO: still send rest of the probes if one probe gave a loop
+        debug.log('no loops found from fwise probe', this._peerNick, this._myNick, msg.fwise, this._probesReceived.cwise);
+        setTimeout(() => {
+          this.send({
+            msgType: 'PROBES',
+            cwise: [],
+            fwise: msg.fwise
+          });
+        }, 100);
+      }
+    }
+  },
+
+  // to be executed in cside ledger, where our balance is too high:
+  _createProbe: function() {
+    // const newProbe = randomBytes(8).toString('hex');
+    const newProbe = this._myNick + '-' + randomBytes(8).toString('hex');
+    this.send({
+      msgType: 'PROBES',
+      cwise: [ newProbe ],
+      fwise: []
+    });
+    console.log('storing as if it were an fside probe from', this._peerNick, newProbe);
+    this._probesReceived.fwise.push(newProbe); // pretend it came from them, to detect loops later
+    const thisBal = this.getBalance();
+    for(let fsideLedger in this._agent._peerHandlers) {
+      // Our fside balance will go down, so find one whose balance is higher:
+      if (this._agent._peerHandlers[fsideLedger].getBalance() > thisBal) {
+        this._agent._peerHandlers[fsideLedger].send({
+          msgType: 'PROBES',
+          cwise: [],
+          fwise: [ newProbe ]
+        });
+      }
+    }
   }
 };
 
