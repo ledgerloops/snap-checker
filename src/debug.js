@@ -1,4 +1,4 @@
-var debug = false;
+var debug = true;
 module.exports = {
   setLevel(level) {
     debug = level;

@@ -8,6 +8,11 @@
   </head>
   <body>
     <h1>LedgerLoops Client-Server demo (client-side part)</h1>
+    <p>Mia sends 1 USD to Vincent.</p>
+    <p>That means Vincent will create a probe and send it cwise to Mia, and fwise to Marsellus.</p>
+    <p>Then, Vincent sends 1 USD to Marsellus.</p>
+    <p>That means Marsellus will create a probe and send it cwise to Vincent, and fwise to Mia.</p>
+    <p>The part that's not working yet is that these probes should be forwarded until they have all looped around once, and then CONDs should be sent.</p>
     <div id="data">Data...</div>
   </body>
   <script src="./ledgerloops.js"></script>

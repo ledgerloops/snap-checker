@@ -49,6 +49,16 @@ function displayAgents() {
         const entry = agents[nick]._peerHandlers[neighbor]._ledger._pending[k];
         html += `<li>(entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})</li>`;
       }
+      displayProbes = (x, dir) => {
+        if (Object.keys(x[dir]).length) {
+          html += `<li>${dir} probes: "${Object.keys(x[dir]).join('", "')}"</li>`;
+        } else {
+          html += `<li>(no ${dir} probes)</li>`;
+        }
+      };
+      displayProbes(agents[nick]._peerHandlers[neighbor]._probesReceived, 'cwise');
+      displayProbes(agents[nick]._peerHandlers[neighbor]._probesReceived, 'fwise');
+
       html += '</ul></li>';
     }
     html += `</ul>`;
