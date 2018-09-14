@@ -12,8 +12,6 @@ function ensureAgent(nick) {
   }
 }
 
-debug.setLevel(true);
-
 messaging.autoFlush = true;
 
 function sendAdd(from, to, amount, currency) {
