@@ -1,6 +1,5 @@
 const debug = require('./debug');
 var Hubbie = require('hubbie').Hubbie;
-var messaging = require('./messaging');
 var randomBytes = require('randombytes');
 var shajs = require('sha.js')
 
@@ -32,7 +31,17 @@ function Ledger(peerNick, myNick, unit, agent, medium) {
   this._probesReceived = { cwise: [], fwise: [] };
   this._agent = agent;
   this.myNextId = 0;
-  if (medium) {
+  console.log({ medium });
+  if (typeof medium === 'object' && medium.addChannel) {
+    this._doSendStr = medium.addChannel(myNick, peerNick, (msgStr) => {
+      console.log('handling incoming msg!', myNick, peerNick, msgStr);
+      return this._handleMessage(JSON.parse(msgStr));
+    });
+    this._doSend = (obj) => {
+      console.log('doSend calling doSendStr!', obj, myNick, peerNick); 
+      return this._doSendStr(JSON.stringify(obj));
+    };
+  } else {
     let config;
     if (typeof medium === 'number') {
       config = { listen: medium };
@@ -56,13 +65,6 @@ function Ledger(peerNick, myNick, unit, agent, medium) {
     });
     hubbie.start().then(() => {
     });
-  } else {
-    this._doSendStr = messaging.addChannel(myNick, peerNick, (msgStr) => {
-      return this._handleMessage(JSON.parse(msgStr));
-    });
-    this._doSend = (obj) => {
-      return this._doSendStr(JSON.stringify(obj));
-    };
   }
 }
 
@@ -91,7 +93,7 @@ Ledger.prototype = {
     // This Ledger said it's usable, so we should start a loop
     // But let's just double-check the balances, and choose a loop amount of half the diff:
 
-    const fsideBal = this._agent._ledgers[fsidePeer].getBalance(); // our fside balance should be low because it will go up
+    const fsideBal = this._agent._peerHandlers[fsidePeer].getBalance(); // our fside balance should be low because it will go up
     const csideBal = this.getBalance();  // our cside balance should be high because it will go down
     const diff = csideBal - fsideBal;
     const amount = diff/2;
@@ -119,10 +121,10 @@ Ledger.prototype = {
     console.log('storing as if it were an fside probe from', this._peerNick, newProbe);
     this._probesReceived.fwise.push(newProbe); // pretend it came from them, to detect loops later
     const thisBal = this.getBalance();
-    for(let fsideLedger in this._agent._ledgers) {
+    for(let fsideLedger in this._agent._peerHandlers) {
       // Our fside balance will go down, so find one whose balance is higher:
-      if (this._agent._ledgers[fsideLedger].getBalance() > thisBal) {
-        this._agent._ledgers[fsideLedger].send({
+      if (this._agent._peerHandlers[fsideLedger].getBalance() > thisBal) {
+        this._agent._peerHandlers[fsideLedger].send({
           msgType: 'PROBES',
           cwise: [],
           fwise: [ newProbe ]
@@ -198,8 +200,8 @@ Ledger.prototype = {
     this._probesReceived.cwise = this._probesReceived.cwise.concat(msg.cwise);
     this._probesReceived.fwise = this._probesReceived.fwise.concat(msg.fwise);
     const thisBal = this.getBalance();
-    for(let otherPeer in this._agent._ledgers) {
-      this._agent._ledgers[otherPeer].considerProbe(thisBal, msg, this._peerNick);
+    for(let otherPeer in this._agent._peerHandlers) {
+      this._agent._peerHandlers[otherPeer].considerProbe(thisBal, msg, this._peerNick);
     }
   },
 
@@ -313,31 +315,31 @@ Ledger.prototype = {
       debug.log('hashlock not mine', this._myNick, msg.condition, Object.keys(this._agent._preimages));
       let suggestLowerAmount = false;
       const thisBal = this.getBalance();
-      for(let toNick in this._agent._ledgers) {
-        debug.log('considering a forward to', toNick, thisBal, this._agent._ledgers[toNick].getBalance());
+      for(let toNick in this._agent._peerHandlers) {
+        debug.log('considering a forward to', toNick, thisBal, this._agent._peerHandlers[toNick].getBalance());
         // when fowarding a COND, your incoming balance will increase and your outgoing balance will decrease
         // so it's useful if your outgoing balance is currently higher:
-        const relBal = this._agent._ledgers[toNick].getBalance() - thisBal;
+        const relBal = this._agent._peerHandlers[toNick].getBalance() - thisBal;
         // example: outBal is 4, inBal is 1; relBal is 3, amount is 2;
         // afterwards, outBal will be 2 and inBal will be 3, so relBal will be -1 (which is closer to zero than current 3)
         if (relBal > msg.amount) { // neighbor is higher, forward it
           debug.log('forwarding!', relBal, msg.amount, this._peerNick, this._myNick, toNick);
-          forwardMsg = this._agent._ledgers[toNick].create(msg.amount, msg.condition, msg.routeId);
-          this._agent._ledgers[toNick]._pendingCond[msg.msgId] = {
+          forwardMsg = this._agent._peerHandlers[toNick].create(msg.amount, msg.condition, msg.routeId);
+          this._agent._peerHandlers[toNick]._ledger._pendingCond[msg.msgId] = {
             fromNick: this._peerNick,
             toNick,
             msg
           };
           debug.log(`${this._myNick} is forwarding COND from ${this._peerNick} to ${toNick}`, msg);
           debug.log(`Probes seen at incoming peer`, this._probesReceived);
-          debug.log(`Probes seen at outgoing peer`, this._agent._ledgers[toNick]._probesReceived);
+          debug.log(`Probes seen at outgoing peer`, this._agent._peerHandlers[toNick]._probesReceived);
 
-          this._agent._ledgers[toNick].send(forwardMsg);
+          this._agent._peerHandlers[toNick].send(forwardMsg);
           return;
         } else if (relBal > 0) {
           suggestLowerAmount = true;
         } else {
-          debug.log(`I don't want to forward this COND from ${this._peerNick} to ${toNick} because my balance with ${toNick} is ${this._agent._ledgers[toNick].getBalance()} and my balance with ${this._peerNick} is ${thisBal}`);
+          debug.log(`I don't want to forward this COND from ${this._peerNick} to ${toNick} because my balance with ${toNick} is ${this._agent._peerHandlers[toNick].getBalance()} and my balance with ${this._peerNick} is ${thisBal}`);
         }
       }
       this.send({
@@ -368,7 +370,7 @@ Ledger.prototype = {
         preimage: msg.preimage
       };
       debug.log(`Passing on FULFILL ${this._peerNick} -> ${this._myNick} -> ${backer}`, backMsg);
-      this._agent._ledgers[backer].send(backMsg);
+      this._agent._peerHandlers[backer].send(backMsg);
     } else {
       debug.log(this._myNick + ': cannot find backer, I must have been the loop initiator.');
     }
