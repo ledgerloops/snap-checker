@@ -78,7 +78,6 @@ Ledger.prototype = {
         msgType: 'COND',
         msgId: this.myNextId++,
         beneficiary: this._peerNick,
-        sender: this._myNick,
         amount,
         unit: this._unit,
         condition,
@@ -89,18 +88,35 @@ Ledger.prototype = {
         msgType: 'ADD',
         msgId: this.myNextId++,
         beneficiary: this._peerNick,
-        sender: this._myNick,
         amount,
         unit: this._unit
       };
     }
   },
   _handleMessage: function(msg, outgoing) {
+    let proposer;
+    if (outgoing) {
+      if (['ADD', 'COND', 'PLEASE-FINALIZE'].indexOf(msg.msgType) !== -1) {
+        proposer = 'me';
+      } else {
+        proposer = 'you';
+      }
+    } else {
+      if (['ADD', 'COND', 'PLEASE-FINALIZE'].indexOf(msg.msgType) !== -1) {
+        proposer = 'you';
+      } else {
+        proposer = 'me';
+      }
+      if (typeof msg !== 'object') {
+        console.error('discarding non-object message from peer', msg);
+        return;
+      }
+    }
     debug.log('Handling', msg);
     switch(msg.msgType) {
       case 'ADD': {
         this._pendingBalance[msg.beneficiary] += msg.amount;
-        this._pendingMsg[`${msg.sender}-${msg.msgId}`] = msg;
+        this._pendingMsg[`${proposer}-${msg.msgId}`] = msg;
         if (!outgoing) {
           this._handler._handleAdd(msg);
         }
@@ -108,7 +124,7 @@ Ledger.prototype = {
       }
       case 'COND': {
         this._pendingBalance[msg.beneficiary] += msg.amount;
-        this._pendingMsg[`${msg.sender}-${msg.msgId}`] = msg;
+        this._pendingMsg[`${proposer}-${msg.msgId}`] = msg;
         debug.log('COND - COND - COND', this._myNick, this._pendingMsg);
         if (!outgoing) {
           setTimeout(() => this._handler._handleCond(msg), 100);
@@ -116,45 +132,54 @@ Ledger.prototype = {
         break;
       }
       case 'ACK': {
-        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        const orig = this._pendingMsg[`${proposer}-${msg.msgId}`];
         if (!orig) {
           debug.log('panic! ACK for non-existing orig', this._pendingMsg, msg);
           panic();
         }
         this._pendingBalance[orig.beneficiary] -= orig.amount;
         this._currentBalance[orig.beneficiary] += orig.amount;
-        this._committed[`${msg.sender}-${msg.msgId}`] = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
-        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`];
+        delete this._pendingMsg[`${proposer}-${msg.msgId}`];
         debug.log('Committed', msg);
         break;
       }
       case 'FULFILL': {
-        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        const orig = this._pendingMsg[`${proposer}-${msg.msgId}`];
         debug.log('FULFILL - FULFILL - FULFILL', this._myNick, this._pendingMsg);
         this._pendingBalance[orig.beneficiary] -= orig.amount;
         this._currentBalance[orig.beneficiary] += orig.amount;
-        this._committed[`${msg.sender}-${msg.msgId}`] = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
-        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`];
+        delete this._pendingMsg[`${proposer}-${msg.msgId}`];
         debug.log('Committed', msg);
         if (!outgoing) {
           this._handler._handleFulfill(msg);
         }
         break;
       }
-      case 'REJECT':
-      case 'REJECT-COND': {
-        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+      case 'REJECT': {
+        const orig = this._pendingMsg[`${proposer}-${msg.msgId}`];
         this._pendingBalance[orig.beneficiary] -= orig.amount;
-        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        delete this._pendingMsg[`${proposer}-${msg.msgId}`];
         debug.log('Rejected', msg);
         break;
       }
       case 'PROBES': {
         if (!outgoing) {
+          if (!Array.isArray(msg.cwise)) {
+            console.error('PROBES message without a cwise array', msg);
+            return;
+          }
+          if (!Array.isArray(msg.fwise)) {
+            console.error('PROBES message without an fwise array', msg);
+            return;
+          }
           this._handler._handleProbe(msg);
         }
         break;
       }
+      default:
+        console.log('unknown message type!', this._myNick, this._peerNick, msg);
     }
   },
   getBalance: function() {
