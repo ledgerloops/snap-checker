@@ -1,0 +1,165 @@
+const debug = require('./debug');
+var Hubbie = require('hubbie').Hubbie;
+// var randomBytes = require('randombytes');
+// var shajs = require('sha.js')
+// 
+// function sha256(x) {
+//   return shajs('sha256').update(x).digest();
+// }
+// 
+// function verifyHex(preimageHex, hashHex) {
+//   const preimage = Buffer.from(preimageHex, 'hex');
+//   const correctHash = sha256(preimage);
+//   return Buffer.from(hashHex, 'hex').equals(correctHash);
+// }
+
+function Ledger(peerNick, myNick, unit, handler, medium) {
+  this._peerNick = peerNick;
+  this._myNick = myNick;
+  this._unit = unit;
+  this._currentBalance = {
+    [peerNick]: 0,
+    [myNick]: 0
+  };
+  this._pendingBalance = {
+    [peerNick]: 0,
+    [myNick]: 0
+  };
+  this._committed = {};
+  this._pendingMsg = {};
+  this._handler = handler;
+  this.myNextId = 0;
+  console.log({ medium });
+  if (typeof medium === 'object' && medium.addChannel) {
+    this._doSendStr = medium.addChannel(myNick, peerNick, (msgStr) => {
+      console.log('handling incoming msg!', myNick, peerNick, msgStr);
+      return this._handleMessage(JSON.parse(msgStr));
+    });
+    this._doSend = (obj) => {
+      console.log('doSend calling doSendStr!', obj, myNick, peerNick); 
+      return this._doSendStr(JSON.stringify(obj));
+    };
+  } else {
+    let config;
+    if (typeof medium === 'number') {
+      config = { listen: medium };
+    } else if (typeof medium === 'object') {
+      config = { server: medium };
+    } else if (typeof medium === 'string') {
+      config = {
+        upstreams: [ {
+          url: medium,
+          name: 'client-server',
+          token: 'secret'
+        } ]
+      };
+    }
+    let hubbie = new Hubbie(config, (peerId) => {
+      this._doSend = (msg) => {
+        return hubbie.send(msg, peerId);
+      };
+    }, (obj, peerId) => {
+      this._handleMessage(obj);
+    });
+    hubbie.start().then(() => {
+    });
+  }
+}
+
+Ledger.prototype = {
+  send: function(obj) {
+    this._handleMessage(obj, true);
+    this._doSend(obj);
+  },
+
+  create: function(amount, condition, routeId) {
+    if (condition) {
+      return {
+        msgType: 'COND',
+        msgId: this.myNextId++,
+        beneficiary: this._peerNick,
+        sender: this._myNick,
+        amount,
+        unit: this._unit,
+        condition,
+        routeId
+      };
+    } else {
+      return {
+        msgType: 'ADD',
+        msgId: this.myNextId++,
+        beneficiary: this._peerNick,
+        sender: this._myNick,
+        amount,
+        unit: this._unit
+      };
+    }
+  },
+  _handleMessage: function(msg, outgoing) {
+    debug.log('Handling', msg);
+    switch(msg.msgType) {
+      case 'ADD': {
+        this._pendingBalance[msg.beneficiary] += msg.amount;
+        this._pendingMsg[`${msg.sender}-${msg.msgId}`] = msg;
+        if (!outgoing) {
+          this._handler._handleAdd(msg);
+        }
+        break;
+      }
+      case 'COND': {
+        this._pendingBalance[msg.beneficiary] += msg.amount;
+        this._pendingMsg[`${msg.sender}-${msg.msgId}`] = msg;
+        debug.log('COND - COND - COND', this._myNick, this._pendingMsg);
+        if (!outgoing) {
+          setTimeout(() => this._handler._handleCond(msg), 100);
+        }
+        break;
+      }
+      case 'ACK': {
+        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        if (!orig) {
+          debug.log('panic! ACK for non-existing orig', this._pendingMsg, msg);
+          panic();
+        }
+        this._pendingBalance[orig.beneficiary] -= orig.amount;
+        this._currentBalance[orig.beneficiary] += orig.amount;
+        this._committed[`${msg.sender}-${msg.msgId}`] = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        debug.log('Committed', msg);
+        break;
+      }
+      case 'FULFILL': {
+        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        debug.log('FULFILL - FULFILL - FULFILL', this._myNick, this._pendingMsg);
+        this._pendingBalance[orig.beneficiary] -= orig.amount;
+        this._currentBalance[orig.beneficiary] += orig.amount;
+        this._committed[`${msg.sender}-${msg.msgId}`] = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        debug.log('Committed', msg);
+        if (!outgoing) {
+          this._handler._handleFulfill(msg);
+        }
+        break;
+      }
+      case 'REJECT':
+      case 'REJECT-COND': {
+        const orig = this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        this._pendingBalance[orig.beneficiary] -= orig.amount;
+        delete this._pendingMsg[`${msg.sender}-${msg.msgId}`];
+        debug.log('Rejected', msg);
+        break;
+      }
+      case 'PROBES': {
+        if (!outgoing) {
+          this._handler._handleProbe(msg);
+        }
+        break;
+      }
+    }
+  },
+  getBalance: function() {
+    return this._currentBalance[this._myNick] - this._currentBalance[this._peerNick];
+  }
+};
+
+module.exports = Ledger;

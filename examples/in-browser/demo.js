@@ -1,47 +1,47 @@
-var debug = LedgerLoops.debug;
 var Agent = LedgerLoops.Agent;
-var messaging = LedgerLoops.messaging;
+
+// singleton for in-process messaging between agents:
+var messaging = new Messaging();
 
 var agents = {
 };
 
-function ensureAgent(nick) {
+function ensureAgent(nick, messaging) {
   if (typeof agents[nick] === 'undefined') {
-    agents[nick] = new Agent(nick, true);
+    agents[nick] = new Agent(nick);
   }
 }
-
-debug.setLevel(true);
 
 messaging.autoFlush = true;
 
 function sendAdd(from, to, amount, currency) {
   ensureAgent(from);
   ensureAgent(to);
-  agents[from].ensurePeer(to);
-  agents[to].ensurePeer(from);
-  const msg = agents[from]._ledgers[to].create(amount);
-  agents[from]._ledgers[to].send(msg);
+  console.log('sendAdd calling ensurePeer');
+  agents[from].ensurePeer(to, messaging);
+  agents[to].ensurePeer(from, messaging);
+  const msg = agents[from]._peerHandlers[to].create(amount);
+  agents[from]._peerHandlers[to].send(msg);
 }
 
 if (typeof window !== 'undefined') {
   window.agents = agents;
-  debug.log('See window.agents.alice._ledgers');
+  console.log('See window.agents.alice._peerHandlers');
 }
 
 function displayAgents() {
   var html = '';
   for (var nick in agents) {
     html += `<p>${nick}:</p><ul>`;
-    for (var neighbor in agents[nick]._ledgers) {
-      html += `<li>Ledger with ${neighbor}: ${agents[nick]._ledgers[neighbor].getBalance()}<ul>`;
+    for (var neighbor in agents[nick]._peerHandlers) {
+      html += `<li>Ledger with ${neighbor}: ${agents[nick]._peerHandlers[neighbor].getBalance()}<ul>`;
       let k;
-      for (k in agents[nick]._ledgers[neighbor]._committed) {
-        const entry = agents[nick]._ledgers[neighbor]._committed[k];
+      for (k in agents[nick]._peerHandlers[neighbor]._ledger._committed) {
+        const entry = agents[nick]._peerHandlers[neighbor]._ledger._committed[k];
         html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
       }
-      for (k in agents[nick]._ledgers[neighbor]._pending) {
-        const entry = agents[nick]._ledgers[neighbor]._pending[k];
+      for (k in agents[nick]._peerHandlers[neighbor]._ledger._pending) {
+        const entry = agents[nick]._peerHandlers[neighbor]._ledger._pending[k];
         html += `<li>(entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})</li>`;
       }
       html += '</ul></li>';
