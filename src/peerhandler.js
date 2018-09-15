@@ -50,8 +50,8 @@ PeerHandler.prototype = {
       let suggestLowerAmount = false;
       const thisBal = this.getBalance();
       for(let toNick in this._agent._peerHandlers) {
-        if (this._agent._peerHandlers[toNick]._probesReceived.cwise[msg.routeId]) {
-          debug.log('not considering a forward to', toNick, msg.routeId,this._agent._peerHandlers[toNick]._probesReceived)
+        if (!this._agent._peerHandlers[toNick]._probesReceived.fwise[msg.routeId]) {
+          debug.log('not considering a forward to', toNick, msg.routeId,this._agent._peerHandlers[toNick]._probesReceived, 'because they never announced this routeId to me (never sent me an fwise probe).');
           continue;
         }
         debug.log('considering a forward to', toNick, thisBal, this._agent._peerHandlers[toNick].getBalance());
@@ -71,7 +71,6 @@ PeerHandler.prototype = {
           debug.log(`${this._myNick} is forwarding COND from ${this._peerNick} to ${toNick}`, msg);
           debug.log(`Probes seen at incoming peer`, this._ledger._probesReceived);
           debug.log(`Probes seen at outgoing peer`, this._agent._peerHandlers[toNick]._ledger._probesReceived);
-          //FIXME: https://github.com/ledgerloops/ledgerloops/issues/32
           this._agent._peerHandlers[toNick].send(forwardMsg);
           return;
         } else if (relBal > 0) {
