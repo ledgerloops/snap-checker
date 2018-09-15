@@ -53,6 +53,7 @@ PeerHandler.prototype = {
           msgType: 'PLEASE-FINALIZE',
           msgId: this._forwardedPending[msg.msgId].fwdMsgId
         }
+        forwardPeerHandler.send(forwardMsg)
       }
     }
   },
@@ -89,7 +90,7 @@ PeerHandler.prototype = {
         // afterwards, outBal will be 2 and inBal will be 3, so relBal will be -1 (which is closer to zero than current 3)
         if (relBal > msg.amount) { // neighbor is higher, forward it
           debug.log('forwarding!', relBal, msg.amount, this._peerNick, this._myNick, toNick)
-          forwardMsg = this._agent._peerHandlers[toNick].create(msg.amount, msg.condition, msg.routeId)
+          const forwardMsg = this._agent._peerHandlers[toNick].create(msg.amount, msg.condition, msg.routeId)
           this._forwardedPending[msg.msgId] = {
             toNick,
             fwdMsgId: forwardMsg.msgId
@@ -218,10 +219,10 @@ PeerHandler.prototype = {
     this._agent._preimages[hashHex] = preimage
     if (amount < 0) {
       debug.log('amount below zero!', amount)
-      panic()
+      panic() // eslint-disable-line no-undef
     }
     // the COND should be sent to this ledger's peer (cside):
-    msg = this.create(amount, hashHex, routeId)
+    const msg = this.create(amount, hashHex, routeId)
     this.send(msg)
   },
 

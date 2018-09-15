@@ -17,14 +17,14 @@ describe('Messaging channel', function () {
     messaging.send('michiel', 'joop', '{"hi": "there" }')
     it('should trigger callback when message arrives', function () {
       return messaging.flush().then(messagesSent => {
-        assert.deepEqual(messagesSent, [{
+        assert.deepStrictEqual(messagesSent, [{
           fromNick: 'michiel',
           toNick: 'joop',
           msg: '{"hi": "there" }'
         }])
-        assert.equal(callback.called, true)
-        assert.equal(callback.args[0][0], 'michiel')
-        assert.equal(callback.args[0][1], '{"hi": "there" }')
+        assert.strictEqual(callback.called, true)
+        assert.strictEqual(callback.args[0][0], 'michiel')
+        assert.strictEqual(callback.args[0][1], '{"hi": "there" }')
       })
     })
   })

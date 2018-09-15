@@ -140,7 +140,7 @@ Ledger.prototype = {
         const orig = this._pendingMsg[`${proposer}-${msg.msgId}`]
         if (!orig) {
           debug.log('panic! ACK for non-existing orig', this._pendingMsg, msg)
-          panic()
+          panic() // eslint-disable-line no-undef
         }
         this._pendingBalance[orig.beneficiary] -= orig.amount
         this._currentBalance[orig.beneficiary] += orig.amount
