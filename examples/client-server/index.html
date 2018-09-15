@@ -8,6 +8,15 @@
   </head>
   <body>
     <h1>LedgerLoops Client-Server demo (client-side part)</h1>
+    <p>Mia sends 1 USD to Vincent.</p>
+    <p>That means Vincent will create a probe and send it cwise to Mia, and fwise to Marsellus. Mia forwards the cwise probe to Marsellus, but Marsellus doesn't forward either of them, because he has a zero balance on both sides, and no interest in participating in any loops (there are no liquidity incentives yet in the network).</p>
+    <p>Then, Vincent sends 1 USD to Marsellus.</p>
+    <p>That means Marsellus will create a probe and send it cwise to Vincent, and fwise to Mia.</p>
+    <p>This probe gets forwarded all the way round in both directions, and then stops just before it would have started its second round.</p>
+    <p>For now, the network participants only remember which probes they received, not which ones they sent, so it's the receiver who detects the loop: in this case, Mia detects the fwise loop, and Vincent detects the cwise loop.</p>
+    <p>Mia then starts a loop by sending a COND towards Marsellus.</p>
+    <p>Vincent could also starts a loop by sending a COND towards Mia, but by convention, only the participant who finds the fwise loop does.</p>
+
     <div id="data">Data...</div>
   </body>
   <script src="./ledgerloops.js"></script>

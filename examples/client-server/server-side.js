@@ -18,6 +18,7 @@ function displayAgents() {
   for (var nick in agents) {
     text += `${nick}:\n`;
     for (var neighbor in agents[nick]._peerHandlers) {
+      console.log(`probes received by ${nick} from ${neighbor}`, agents[nick]._peerHandlers[neighbor]._probesReceived);
       text += ` * Ledger with ${neighbor}: ${agents[nick]._peerHandlers[neighbor].getBalance()}\n`;
       let k;
       for (k in agents[nick]._peerHandlers[neighbor]._ledger._committed) {
@@ -37,4 +38,4 @@ function displayAgents() {
 //   const msg = agents['Marsellus']._peerHandlers['Mia'].create(1);
 //   agents['Marsellus']._peerHandlers['Mia'].send(msg);
 // }, 10000);
-// setInterval(displayAgents, 1000);
+setInterval(displayAgents, 20000);
