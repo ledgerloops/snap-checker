@@ -38,4 +38,4 @@ function displayAgents() {
 //   const msg = agents['Marsellus']._peerHandlers['Mia'].create(1);
 //   agents['Marsellus']._peerHandlers['Mia'].send(msg);
 // }, 10000);
-setInterval(displayAgents, 5000);
+setInterval(displayAgents, 20000);

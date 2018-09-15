@@ -24,9 +24,6 @@ PeerHandler.prototype = {
   getBalance: function() {
     return this._ledger.getBalance();
   },
-  considerProbe: function(thisBal, msg, peerNick) {
-    return this._ledger.considerProbe(thisBal, msg, peerNick);
-  },
   create: function(amount, hashHex, routeId) {
     return this._ledger.create(amount, hashHex, routeId);
   },
@@ -53,7 +50,7 @@ PeerHandler.prototype = {
       let suggestLowerAmount = false;
       const thisBal = this.getBalance();
       for(let toNick in this._agent._peerHandlers) {
-        if (this._agent._peerHandlers[toNick]._probesReceived.fwise[msg.routeId]) {
+        if (this._agent._peerHandlers[toNick]._probesReceived.cwise[msg.routeId]) {
           debug.log('not considering a forward to', toNick, msg.routeId,this._agent._peerHandlers[toNick]._probesReceived)
           continue;
         }
@@ -147,6 +144,14 @@ PeerHandler.prototype = {
     msg.fwise = msg.fwise.filter(probe => {
       if (this._probesReceived.fwise[probe]) {
         console.log('fwise loop found!', this._myNick, probe);
+        for (let fsidePeer in this._agent._peerHandlers) {
+          if (this._agent._peerHandlers[fsidePeer]._probesReceived.cwise[probe]) {
+            console.log(`have fside peer for ${probe}, ${fsidePeer}`)
+            this._startLoop(probe, fsidePeer);
+            break;
+          }
+        }
+        // FIXME: fside peer might still be found later?
         return false;
       } else {
         this._probesReceived.fwise[probe] = true;
@@ -159,9 +164,9 @@ PeerHandler.prototype = {
     }
   },
 
-  // to be executed in cside ledger:
+  // to be executed in cside peerHandler, where the fwise loop is detected:
   _startLoop: function(routeId, fsidePeer) {
-    // fsidePeer has sent us a cside probe, meaning they want to send a COND.
+    // fsidePeer has sent us a fside probe, meaning they want to send a COND.
     // This Ledger said it's usable, so we should start a loop
     // But let's just double-check the balances, and choose a loop amount of half the diff:
 
@@ -184,25 +189,24 @@ PeerHandler.prototype = {
 
   // to be executed on all other side when a probe comes in from one peer
   considerProbe: function(ourOtherBal, msg, receivedFromPeer) {
-    const relBal = this.getBalance() - ourOtherBal;
-    console.log('considering probe', { ourOtherBal, receivedFromPeer, msg, relBal });
-    if (this.getBalance() > ourOtherBal && msg.fwise.length) { // this balance is higher, potential cside, forward the fwise probes
-      console.log(`${this._myNick} is forwarding fwise probes from ${receivedFromPeer} to ${this._peerNick}`);
-      setTimeout(() => {
-        this.send({
-          msgType: 'PROBES',
-          cwise: [],
-          fwise: msg.fwise
-        });
-      }, 100);
-    }
-    if (this.getBalance() < ourOtherBal && msg.cwise.length) { // this balance is lower, potential fside, forward the cwise probes
+    console.log('considering probe; will forward cwise if this balance is higher and forward fwise if this balance is lower', { ourOtherBal, thisBal: this.getBalance(), myNick: this._myNick, peerNick: this._peerNick, receivedFromPeer, msg });
+    if (this.getBalance() > ourOtherBal && msg.cwise.length) { // this balance is higher, potential cside, forward the cwise probes
       console.log(`${this._myNick} is forwarding cwise probes from ${receivedFromPeer} to ${this._peerNick}`);
       setTimeout(() => {
         this.send({
           msgType: 'PROBES',
-          cwise: msg.cwise,
-          fwise: []
+          fwise: [],
+          cwise: msg.cwise
+        });
+      }, 100);
+    }
+    if (this.getBalance() < ourOtherBal && msg.fwise.length) { // this balance is lower, potential fside, forward the fwise probes
+      console.log(`${this._myNick} is forwarding fwise probes from ${receivedFromPeer} to ${this._peerNick}`);
+      setTimeout(() => {
+        this.send({
+          msgType: 'PROBES',
+          fwise: msg.fwise,
+          cwise: []
         });
       }, 100);
     }
