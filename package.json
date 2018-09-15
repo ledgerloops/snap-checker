@@ -12,6 +12,12 @@
     "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
   },
   "devDependencies": {
+    "eslint": "^5.6.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
     "grunt": "^1.0.1",
     "grunt-browserify": "^5.0.0",
     "grunt-contrib-jshint": "^1.0.0",
@@ -23,6 +29,7 @@
   },
   "scripts": {
     "test": "grunt test",
+    "lint": "eslint src/**/*.js test/**/*.js",
     "build": "grunt build",
     "start": "node examples/monetized-blog-heroku/agent-heroku.js",
     "watch": "grunt watch"

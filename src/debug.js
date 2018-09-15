@@ -1,15 +1,15 @@
-var debug = true;
+var debug = true
 module.exports = {
-  setLevel(level) {
-    debug = level;
+  setLevel (level) {
+    debug = level
   },
- log: function() {
-    var args = [];
+  log: function () {
+    var args = []
     Object.keys(arguments).map(key => {
-      args.push(arguments[key]);
-    });
+      args.push(arguments[key])
+    })
     if (debug) {
-      console.log.apply(console, args);
+      console.log.apply(console, args)
     }
-  },
-};
+  }
+}
