@@ -3,12 +3,6 @@ module.exports = function(grunt) {
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
-    jshint: {
-      options: {
-        'esversion': 6
-      },
-      files: ['Gruntfiles.js', 'src/*.js', 'test/*/*.js'],
-    },
     mochaTest: {
       test: {
         options: {
@@ -44,7 +38,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
  
   // Default task(s).
-  grunt.registerTask('test', ['jshint', 'mochaTest']);
+  grunt.registerTask('test', ['mochaTest']);
   grunt.registerTask('build', ['browserify']);
   grunt.registerTask('default', ['test', 'build']);
 
