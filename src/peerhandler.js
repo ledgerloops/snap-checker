@@ -89,14 +89,10 @@ PeerHandler.prototype = {
 
   _handleFulfill: function(msg) {
     // TODO: check whether the preimage is valid
+    // see https://github.com/ledgerloops/ledgerloops/issues/36
     if (this._pendingCond[msg.msgId]) {
       const backer = this._pendingCond[msg.msgId].fromNick;
       debug.log('handling fulfill, backer found:', backer);
-      // FIXME: sending this ACK after the FULFILL has already committed the transaction confuses things!
-      // this.send({
-      //   msgType: 'ACK',
-      //   msgId: msg.msgId
-      // });
       debug.log('cond-level orig:', this._pendingCond[msg.msgId]);
       const backMsg = {
         msgType: 'FULFILL',
@@ -151,6 +147,7 @@ PeerHandler.prototype = {
           }
         }
         // FIXME: fside peer might still be found later?
+        // see https://github.com/ledgerloops/ledgerloops/issues/35
         return false;
       } else {
         this._probesReceived.fwise[probe] = true;
