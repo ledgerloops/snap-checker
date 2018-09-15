@@ -1,1 +1,1 @@
-LedgerLoops = require('./index');
+LedgerLoops = require('./index')
