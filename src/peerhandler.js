@@ -14,6 +14,8 @@ function PeerHandler(peerNick, myNick, unit, agent, medium) {
   this._ledger = new Ledger(peerNick, myNick, unit, this, medium);
   this._probesReceived = { cwise: {}, fwise: {} };
   this._pendingCond = {};
+  this._forwardingTimers = {};
+  this._forwardedPending = {};
 }
 
 PeerHandler.prototype = {
@@ -35,7 +37,32 @@ PeerHandler.prototype = {
     this.send(reply);
     this._createProbe(); // peer now owes me money, so I'll send them a cwise probe, and maybe send some other peers an fwise one for it
   },
+  _handlePleaseFinalize: function(msg) {
+    if(this._forwardingTimers[msg.msgId]) {
+      clearTimeout(this._forwardingTimers[msg.msgId]);
+      delete this._forwardingTimers[msg.msgId];
+      this.send({
+        msgType: 'REJECT',
+        msgId: msg.msgId,
+        reason: 'please-finalize message received'
+      });
+    } else {
+      if (this._forwardedPending[msg.msgId]) {
+        const forwardPeerHandler = this._agent._peerHandlers[this._forwardedPending[msg.msgId].toNick];
+        const forwardMsg = {
+          msgType: 'PLEASE-FINALIZE',
+          msgId: this._forwardedPending[msg.msgId].fwdMsgId
+        };
+      }
+    }
+  },
   _handleCond: function(msg) {
+    this._forwardingTimers[msg.msgId] = setTimeout(() => {
+      this._doHandleCond(msg);
+      delete this._forwardingTimers[msg.msgId];
+    }, 100);
+  },
+  _doHandleCond: function(msg) {
     debug.log(`Agent ${this._myNick} handles COND that comes in from ${this._peerNick}`, msg);
     if (this._agent._preimages[msg.condition]) {
       debug.log('replying with fulfill!', msg.condition, this._agent._preimages[msg.condition].toString('hex'))
@@ -63,10 +90,14 @@ PeerHandler.prototype = {
         if (relBal > msg.amount) { // neighbor is higher, forward it
           debug.log('forwarding!', relBal, msg.amount, this._peerNick, this._myNick, toNick);
           forwardMsg = this._agent._peerHandlers[toNick].create(msg.amount, msg.condition, msg.routeId);
-          this._agent._peerHandlers[toNick]._pendingCond[msg.msgId] = {
+          this._forwardedPending[msg.msgId] = {
+            toNick,
+            fwdMsgId: forwardMsg.msgId
+          }
+          this._agent._peerHandlers[toNick]._pendingCond[forwardMsg.msgId] = {
             fromNick: this._peerNick,
             toNick,
-            msg
+            msg,
           };
           debug.log(`${this._myNick} is forwarding COND from ${this._peerNick} to ${toNick}`, msg);
           debug.log(`Probes seen at incoming peer`, this._ledger._probesReceived);
@@ -101,12 +132,23 @@ PeerHandler.prototype = {
       };
       debug.log(`Passing on FULFILL ${this._peerNick} -> ${this._myNick} -> ${backer}`, backMsg);
       this._agent._peerHandlers[backer].send(backMsg);
+      delete this._agent._peerHandlers[backer]._forwardedPending[msg.msgId];
     } else {
       debug.log(this._myNick + ': cannot find backer, I must have been the loop initiator.');
     }
   },
 
   _handleReject: function(msg) {
+    if (this._pendingCond[msg.msgId]) {
+      const backer = this._pendingCond[msg.msgId].fromNick;
+      delete this._agent._peerHandlers[backer]._forwardedPending[msg.msgId];
+      const backMsg = {
+        msgType: 'REJECT',
+        msgId: this._pendingCond[msg.msgId].msg.msgId,
+        reason: msg.reason
+      };
+      this._agent._peerHandlers[backer].send(backMsg);
+    }
   },
 
     ////////////

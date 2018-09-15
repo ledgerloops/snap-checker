@@ -121,12 +121,21 @@ Ledger.prototype = {
         }
         break;
       }
+      case 'PLEASE-FINALIZE': {
+        if (!outgoing) {
+          this._handler._handlePleaseFinalize(msg);
+        }
+        break;
+      }
       case 'COND': {
+        if (this._forwardingTimers[msg.msgId]) {
+          clearTimeout(this._forwardingTimers[msg.msgId]);
+        }
         this._pendingBalance[msg.beneficiary] += msg.amount;
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg;
         debug.log('COND - COND - COND', this._myNick, this._pendingMsg);
         if (!outgoing) {
-          setTimeout(() => this._handler._handleCond(msg), 100);
+          this._handler._handleCond(msg);
         }
         break;
       }
