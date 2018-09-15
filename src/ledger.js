@@ -1,17 +1,16 @@
 const debug = require('./debug');
 var Hubbie = require('hubbie').Hubbie;
-// var randomBytes = require('randombytes');
-// var shajs = require('sha.js')
-// 
-// function sha256(x) {
-//   return shajs('sha256').update(x).digest();
-// }
-// 
-// function verifyHex(preimageHex, hashHex) {
-//   const preimage = Buffer.from(preimageHex, 'hex');
-//   const correctHash = sha256(preimage);
-//   return Buffer.from(hashHex, 'hex').equals(correctHash);
-// }
+var shajs = require('sha.js')
+
+function sha256(x) {
+  return shajs('sha256').update(x).digest();
+}
+
+function verifyHash(preimageHex, hashHex) {
+  const preimage = Buffer.from(preimageHex, 'hex');
+  const correctHash = sha256(preimage);
+  return Buffer.from(hashHex, 'hex').equals(correctHash);
+}
 
 function Ledger(peerNick, myNick, unit, handler, medium) {
   this._peerNick = peerNick;
@@ -147,6 +146,12 @@ Ledger.prototype = {
       case 'FULFILL': {
         const orig = this._pendingMsg[`${proposer}-${msg.msgId}`];
         debug.log('FULFILL - FULFILL - FULFILL', this._myNick, this._pendingMsg);
+        if (!verifyHash(msg.preimage, orig.condition)) {
+          console.log('no hash match!', msg, orig);
+          return;
+        } else {
+          console.log('hash match!');
+        }
         this._pendingBalance[orig.beneficiary] -= orig.amount;
         this._currentBalance[orig.beneficiary] += orig.amount;
         this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`];
