@@ -3,13 +3,18 @@
   <head>
     <title>LedgerLoops Demo (press F12 to see the console)</title>
     <meta charset="utf-8" />
-    <link rel="ledger" href="ws://localhost:8080" />
+    <link rel="ledger" id="ledgerloopsLink" />
     <style>
     </style>
   </head>
   <body>
     <h1>LedgerLoops Monetized Blog demo (blog part)</h1>
     <p>This blog includes the following tag in the html header:</p>
-    <code>&lt;link rel="ledger" href="ws://localhost:8080" /&gt;</code>
+    <code>&lt;link rel="ledger" href="<span id="ledgerloopsLinkCode"></span>" /&gt;</code>
   </body>
+  <script>
+    const chan = `wss://${window.location.hostname}`
+    document.getElementById('ledgerloopsLink').setAttribute('href', chan);
+    document.getElementById('ledgerloopsLinkCode').innerText = chan;
+  </script>
 </html>
