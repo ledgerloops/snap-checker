@@ -3,35 +3,13 @@
   <head>
     <title>LedgerLoops Demo (press F12 to see the console)</title>
     <meta charset="utf-8" />
+    <link rel="ledger" href="ws://localhost:8080" />
     <style>
     </style>
   </head>
   <body>
     <h1>LedgerLoops Monetized Blog demo (blog part)</h1>
-    <p>This blog includes the following snippet:</p>
-    <code>
-  function go() {
-    if (window.setLedgerLoopsChannel) {
-      console.log('setting LedgerLoops channel');
-      window.setLedgerLoopsChannel('ws://localhost:8080');
-    } else {
-      console.log('waiting...');
-      setTimeout(go, 1000);
-    }
-  }
-  go();
-    </code>
+    <p>This blog includes the following tag in the html header:</p>
+    <code>&lt;link rel="ledger" href="ws://localhost:8080" /&gt;</code>
   </body>
-  <script>
-    function go() {
-      if (window.setLedgerLoopsChannel) {
-        console.log('setting LedgerLoops channel');
-        window.setLedgerLoopsChannel('ws://localhost:8080');
-      } else {
-        console.log('waiting...');
-        setTimeout(go, 1000);
-      }
-    }
-    go();
-  </script>
 </html>
