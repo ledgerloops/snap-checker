@@ -116,6 +116,7 @@ Ledger.prototype = {
       case 'ADD': {
         this._pendingBalance[msg.beneficiary] += msg.amount
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
+        this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         if (!outgoing) {
           this._handler._handleAdd(msg)
         }
@@ -130,6 +131,7 @@ Ledger.prototype = {
       case 'COND': {
         this._pendingBalance[msg.beneficiary] += msg.amount
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
+        this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         debug.log('COND - COND - COND', this._myNick, this._pendingMsg)
         if (!outgoing) {
           this._handler._handleCond(msg)
