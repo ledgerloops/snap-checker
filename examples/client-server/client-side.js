@@ -1,18 +1,13 @@
 var Agent = LedgerLoops.Agent;
 
-// singleton for in-process messaging between agents:
-var messaging = new Messaging();
-
 var agents = {
 };
 
-function ensureAgent(nick) {
+function ensureAgent(nick, secret) {
   if (typeof agents[nick] === 'undefined') {
-    agents[nick] = new Agent(nick, true);
+    agents[nick] = new Agent(nick, secret);
   }
 }
-
-messaging.autoFlush = true;
 
 function sendAdd(from, to, amount, currency) {
   const msg = agents[from]._peerHandlers[to].create(amount);
@@ -78,13 +73,13 @@ function displayAgents() {
   document.getElementById('data').innerHTML = html;
 }
 
-ensureAgent('Mia');
+ensureAgent('Mia', 'Wallace');
 agents['Mia'].ensurePeer('Marsellus', 'ws://localhost:8081');
-agents['Mia'].ensurePeer('Vincent', messaging);
+agents['Mia'].ensurePeer('Vincent');
 
-ensureAgent('Vincent');
-agents['Vincent'].ensurePeer('Marsellus', 'ws://localhost:8082');
-agents['Vincent'].ensurePeer('Mia', messaging);
+ensureAgent('Vincent', 'Vega');
+agents['Vincent'].ensurePeer('Marsellus', 'ws://localhost:8081');
+agents['Vincent'].ensurePeer('Mia');
 
 setTimeout(() => sendAdd('Mia', 'Vincent', 1, 'USD'), 2000);
 setTimeout(() => sendAdd('Vincent', 'Marsellus', 1, 'USD'), 3000);
