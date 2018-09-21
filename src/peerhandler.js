@@ -21,6 +21,7 @@ function PeerHandler (peerNick, myNick, unit, agent) {
 PeerHandler.prototype = {
   send: function (msg) {
     console.log(`peerhandler ${this._myNick} sends to ${this._peerNick}!`, msg)
+    this._ledger.handleMessage(msg, true)
     return this._agent.hubbie.send(this._peerNick, msg)
   },
   getBalance: function () {

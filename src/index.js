@@ -33,6 +33,7 @@ Agent.prototype = {
   listen: function (port, clientCreds) {
     this.hubbie.listen({ port });
     this.hubbie.on('peer', (eventObj) => {
+      console.log('hubbie peer!', eventObj);
       return (eventObj.peerSecret === clientCreds[eventObj.peerName]);
     });
   }
