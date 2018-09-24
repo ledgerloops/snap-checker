@@ -7,7 +7,7 @@
     "test": "test"
   },
   "dependencies": {
-    "hubbie": "^3.1.0",
+    "hubbie": "^3.2.0",
     "node-fetch": "^2.2.0",
     "randombytes": "^2.0.6",
     "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
