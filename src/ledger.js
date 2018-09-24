@@ -27,21 +27,9 @@ function Ledger (peerNick, myNick, unit, handler) {
   this._pendingMsg = {}
   this._handler = handler
   this.myNextId = 0
-  this._doSendStr = (msgStr) => {
-    return this._handler._agent.hubbie.send(this._peerNick,msgStr);
-  };
-  this._doSend = (obj) => {
-    console.log('doSend calling doSendStr!', obj, myNick, peerNick)
-    return this._doSendStr(JSON.stringify(obj))
-  }
 }
 
 Ledger.prototype = {
-  send: function (obj) {
-    this.handleMessage(obj, true)
-    this._doSend(obj)
-  },
-
   create: function (amount, condition, routeId) {
     if (condition) {
       return {
