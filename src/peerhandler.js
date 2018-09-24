@@ -7,11 +7,11 @@ function sha256 (x) {
   return shajs('sha256').update(x).digest()
 }
 
-function PeerHandler (peerNick, myNick, unit, agent, medium) {
+function PeerHandler (peerNick, myNick, unit, agent) {
   this._peerNick = peerNick
   this._myNick = myNick
   this._agent = agent
-  this._ledger = new Ledger(peerNick, myNick, unit, this, medium)
+  this._ledger = new Ledger(peerNick, myNick, unit, this)
   this._probesReceived = { cwise: {}, fwise: {} }
   this._pendingCond = {}
   this._forwardingTimers = {}
@@ -19,9 +19,11 @@ function PeerHandler (peerNick, myNick, unit, agent, medium) {
 }
 
 PeerHandler.prototype = {
-  send: function (msg) {
-    console.log(`peerhandler ${this._myNick} sends to ${this._peerNick}!`, msg)
-    return this._ledger.send(msg)
+  send: function (msgObj) {
+    console.log(`peerhandler ${this._myNick} sends to ${this._peerNick}!`, msgObj)
+    console.log('calling handleMessage, outgoing')
+    this._ledger.handleMessage(msgObj, true)
+    return this._agent.hubbie.send(this._peerNick, JSON.stringify(msgObj))
   },
   getBalance: function () {
     return this._ledger.getBalance()

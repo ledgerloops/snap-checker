@@ -10,8 +10,10 @@ function ensureAgent(nick) {
 }
 
 ensureAgent('Marsellus');
-agents['Marsellus'].ensurePeer('Mia', 8081);
-agents['Marsellus'].ensurePeer('Vincent', 8082);
+agents['Marsellus'].listen(8081, {
+  Mia: 'Wallace',
+  Vincent: 'Vega'
+});
 
 function displayAgents() {
   var text = '-------------------------------------\n';

@@ -1,5 +1,4 @@
 const debug = require('./debug')
-var Hubbie = require('hubbie').Hubbie
 var shajs = require('sha.js')
 
 function sha256 (x) {
@@ -12,7 +11,7 @@ function verifyHash (preimageHex, hashHex) {
   return Buffer.from(hashHex, 'hex').equals(correctHash)
 }
 
-function Ledger (peerNick, myNick, unit, handler, medium) {
+function Ledger (peerNick, myNick, unit, handler) {
   this._peerNick = peerNick
   this._myNick = myNick
   this._unit = unit
@@ -28,49 +27,9 @@ function Ledger (peerNick, myNick, unit, handler, medium) {
   this._pendingMsg = {}
   this._handler = handler
   this.myNextId = 0
-  console.log({ medium })
-  if (typeof medium === 'object' && medium.addChannel) {
-    this._doSendStr = medium.addChannel(myNick, peerNick, (msgStr) => {
-      console.log('handling incoming msg!', myNick, peerNick, msgStr)
-      return this._handleMessage(JSON.parse(msgStr))
-    })
-    this._doSend = (obj) => {
-      console.log('doSend calling doSendStr!', obj, myNick, peerNick)
-      return this._doSendStr(JSON.stringify(obj))
-    }
-  } else {
-    let config
-    if (typeof medium === 'number') {
-      config = { listen: medium }
-    } else if (typeof medium === 'object') {
-      config = { server: medium }
-    } else if (typeof medium === 'string') {
-      config = {
-        upstreams: [ {
-          url: medium,
-          name: 'client-server',
-          token: 'secret'
-        } ]
-      }
-    }
-    let hubbie = new Hubbie(config, (peerId) => {
-      this._doSend = (msg) => {
-        return hubbie.send(msg, peerId)
-      }
-    }, (obj, peerId) => {
-      this._handleMessage(obj)
-    })
-    hubbie.start().then(() => {
-    })
-  }
 }
 
 Ledger.prototype = {
-  send: function (obj) {
-    this._handleMessage(obj, true)
-    this._doSend(obj)
-  },
-
   create: function (amount, condition, routeId) {
     if (condition) {
       return {
@@ -92,7 +51,8 @@ Ledger.prototype = {
       }
     }
   },
-  _handleMessage: function (msg, outgoing) {
+  handleMessage: function (msg, outgoing) {
+    console.log(`${this._myNick} handles message ${(outgoing ? 'to' : 'from')} ${this._peerNick}`, msg);
     let proposer
     if (outgoing) {
       if (['ADD', 'COND', 'PLEASE-FINALIZE'].indexOf(msg.msgType) !== -1) {

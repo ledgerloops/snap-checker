@@ -1,25 +1,20 @@
 var Agent = LedgerLoops.Agent;
 
-// singleton for in-process messaging between agents:
-var messaging = new Messaging();
-
 var agents = {
 };
 
-function ensureAgent(nick, messaging) {
+function ensureAgent(nick) {
   if (typeof agents[nick] === 'undefined') {
     agents[nick] = new Agent(nick);
   }
 }
 
-messaging.autoFlush = true;
-
 function sendAdd(from, to, amount, currency) {
   ensureAgent(from);
   ensureAgent(to);
   console.log('sendAdd calling ensurePeer');
-  agents[from].ensurePeer(to, messaging);
-  agents[to].ensurePeer(from, messaging);
+  agents[from].ensurePeer(to);
+  agents[to].ensurePeer(from);
   const msg = agents[from]._peerHandlers[to].create(amount);
   agents[from]._peerHandlers[to].send(msg);
 }
