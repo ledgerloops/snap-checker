@@ -52,6 +52,7 @@ Ledger.prototype = {
     }
   },
   handleMessage: function (msg, outgoing) {
+    console.log(`${this._myNick} handles message ${(outgoing ? 'to' : 'from')} ${this._peerNick}`, msg);
     let proposer
     if (outgoing) {
       if (['ADD', 'COND', 'PLEASE-FINALIZE'].indexOf(msg.msgType) !== -1) {

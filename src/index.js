@@ -10,7 +10,17 @@ function Agent (myNick, mySecret) {
   this.hubbie.listen({ myName: myNick });
   this.hubbie.on('message', (peerNick, msg) => {
     if (this._peerHandlers[peerNick]) {
-      this._peerHandlers[peerNick]._ledger.handleMessage(msg, false);
+      let msgObj;
+      try {
+        msgObj = JSON.parse(msg);
+      } catch (e) {
+        console.error('msg not JSON', peerNick, msg);
+        return;
+      }
+      console.log('calling handleMessage, incoming')
+      this._peerHandlers[peerNick]._ledger.handleMessage(msgObj, false);
+    } else {
+      console.log('message is lost!', peerNick, msg);
     }
   });
 }
@@ -32,9 +42,15 @@ Agent.prototype = {
   },
   listen: function (port, clientCreds) {
     this.hubbie.listen({ port });
-    this.hubbie.on('peer', (eventObj) => {
-      console.log('hubbie peer!', eventObj);
-      return (eventObj.peerSecret === clientCreds[eventObj.peerName]);
+    this.hubbie.on('peer', ({ peerName, peerSecret }) => {
+      const verdict = (peerSecret === clientCreds[peerName]);
+      if (verdict) {
+        console.log('hubbie peer accepted!');
+        this._peerHandlers[peerName] = new PeerHandler(peerName, this._myNick, 'UCR', this);
+      } else {
+        console.log('hubbie peer rejected!');
+      }
+      return verdict;
     });
   }
 };
