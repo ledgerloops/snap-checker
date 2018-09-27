@@ -83,12 +83,12 @@ agents['Mia'].ensurePeer('Vincent');
 ensureAgent('Vincent', 'Vega');
 agents['Vincent'].addClient({
   peerName: 'Marsellus',
-  peerUrl: 'ws://localhost:8081'
+  peerUrl: 'ws://localhost:8083'
 });
 agents['Vincent'].ensurePeer('Mia');
 
-setTimeout(() => sendAdd('Mia', 'Vincent', 1, 'USD'), 2000);
-setTimeout(() => sendAdd('Vincent', 'Marsellus', 1, 'USD'), 3000);
+ setTimeout(() => sendAdd('Mia', 'Vincent', 1, 'USD'), 2000);
+ setTimeout(() => sendAdd('Vincent', 'Marsellus', 1, 'USD'), 3000);
 // And Marsellus has to do this server-side
 
 setInterval(displayAgents, 1000);
