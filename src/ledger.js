@@ -146,6 +146,9 @@ Ledger.prototype = {
 
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
         debug.log('Rejected', msg)
+        if (!outgoing) {
+          this._handler._handleReject(msg)
+        }
         break
       }
       case 'PROBES': {

@@ -76,7 +76,7 @@ PeerHandler.prototype = {
         preimage: this._agent._preimages[msg.condition].toString('hex')
       }
       this.send(reply)
-      delete this._loopsStarted[msg.id];
+      delete this._loopsStarted[msg.msgId];
     } else {
       debug.log('hashlock not mine', this._myName, msg.condition, Object.keys(this._agent._preimages))
       let suggestLowerAmount = false
@@ -144,7 +144,9 @@ PeerHandler.prototype = {
   },
 
   _handleReject: function (msg) {
+    console.log('handle reject!', msg);
     if (this._pendingCond[msg.msgId]) {
+      console.log('pending cond!');
       const backer = this._pendingCond[msg.msgId].fromName
       delete this._agent._peerHandlers[backer]._forwardedPending[msg.msgId]
       const backMsg = {
@@ -154,10 +156,12 @@ PeerHandler.prototype = {
       }
       this._agent._peerHandlers[backer].send(backMsg)
     } else if ((this._loopsStarted[msg.msgId]) && (msg.reason === 'try a lower amount')) {
-      const loop = this._loopsStarted[msg.id];
+      console.log('loops started!');
+      const loop = this._loopsStarted[msg.msgId];
       this._startLoop(loop.routeId, loop.fsidePeer, loop.amount/2);
-      delete this._loopsStarted[msg.id];
+      delete this._loopsStarted[msg.msgId];
     } 
+    console.log('end of reject', this._loopsStarted);
   },
 
   /// /////////
@@ -238,7 +242,7 @@ PeerHandler.prototype = {
     // the COND should be sent to this ledger's peer (cside):
     const msg = this.create(amount, hashHex, routeId)
     this.send(msg)
-    this._loopsStarted[msg.id] = { routeId, fsidePeer, amount };
+    this._loopsStarted[msg.msgId] = { routeId, fsidePeer, amount };
   },
 
   // to be executed on all other side when a probe comes in from one peer
