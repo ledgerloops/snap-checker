@@ -1,34 +1,28 @@
 var Agent = require('../..').Agent;
+var myName = process.env.NAME;
+var mySecret = process.env.SECRET;
+var agent = new Agent(process.env.NAME, process.env.SECRET, () => true);
 
-var agent = new Agent('heroku', process.env.SECRET, () => true);
-
-var http = require('http');
-var fs = require('fs');
-var htmlPage = fs.readFileSync('./examples/server-server/index.html');
-
-var handler = (req, res) => {
-  if (req.url == '/') {
-    res.writeHead(200);
-    res.end(htmlPage);
-  } else {
-    res.writeHead(404);
-    res.end('Page not found');
+if (process.env.NEIGHBORS) {
+  try {
+    var neighbors = JSON.parse(process.env.NEIGHBORS);
+    for (let peerName in neighbors) {
+      agent.addClient({
+        peerUrl: neighbors[peerName],
+        peerName
+      });
+    }
+  } catch (e) {
+    console.error('could not parse neighbor config', process.env.NEIGHBORS);
+    process.exit();
   }
-};
-
-if (typeof process.env.TESTNET_FRIENDS == 'string') {
-  process.env.TESTNET_FRIENDS.split(',').map(friendWssUrl => {
-    agent.addClient({
-      peerUrl: friendWssUrl,
-      peerName: friendWssUrl
-    });
-  });
 }
+
+const port = process.env.PORT;
+console.log('listening on port', port);
+agent.listen({ port: parseInt(port) });
 
 if (process.env.DONATION) {
   const donation = agent.create(process.env.DONATION, 1);
-  agent.send(process.env.DONATION, donation);
+  agent.send('Mia', donation);
 }
-
-console.log('listening on port', process.env.PORT);
-agent.listen({ port: parseInt(process.env.PORT), handler });

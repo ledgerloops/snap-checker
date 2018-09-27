@@ -3,13 +3,12 @@ https://github.com/ledgerloops/ledgerloops/issues/45:
 
 server on 8081:
 ```sh
-PORT=8081 SECRET=pssst TESTNET_FRIENDS=http://localhost:8082 DONATION=Mia node examples/server-server/agent-heroku.js
+PORT=8081 NAME=Marsellus SECRET=boo NEIGHBORS="{\"Vincent\":\"http://localhost:8082\"}" DONATION="Mia" node examples/server-server/agent-heroku.js
 ```
 
 server on 8082:
 ```sh
-PORT=8082 SECRET=boo TESTNET_FRIENDS=http://localhost:8081 node examples/server-server/agent-heroku.js
-
+PORT=8082 NAME=Vincent SECRET=Vega NEIGHBORS="{\"Marsellus\":\"http://localhost:8081\"}" node examples/server-server/agent-heroku.js
 ```
 
 For client-side:
