@@ -16,6 +16,7 @@ function PeerHandler (peerName, myName, unit, agent) {
   this._pendingCond = {}
   this._forwardingTimers = {}
   this._forwardedPending = {}
+  this._loopsStarted = {}
 }
 
 PeerHandler.prototype = {
@@ -75,6 +76,7 @@ PeerHandler.prototype = {
         preimage: this._agent._preimages[msg.condition].toString('hex')
       }
       this.send(reply)
+      delete this._loopsStarted[msg.msgId];
     } else {
       debug.log('hashlock not mine', this._myName, msg.condition, Object.keys(this._agent._preimages))
       let suggestLowerAmount = false
@@ -142,7 +144,9 @@ PeerHandler.prototype = {
   },
 
   _handleReject: function (msg) {
+    console.log('handle reject!', msg);
     if (this._pendingCond[msg.msgId]) {
+      console.log('pending cond!');
       const backer = this._pendingCond[msg.msgId].fromName
       delete this._agent._peerHandlers[backer]._forwardedPending[msg.msgId]
       const backMsg = {
@@ -151,7 +155,13 @@ PeerHandler.prototype = {
         reason: msg.reason
       }
       this._agent._peerHandlers[backer].send(backMsg)
-    }
+    } else if ((this._loopsStarted[msg.msgId]) && (msg.reason === 'try a lower amount')) {
+      console.log('loops started!');
+      const loop = this._loopsStarted[msg.msgId];
+      this._startLoop(loop.routeId, loop.fsidePeer, loop.amount/2);
+      delete this._loopsStarted[msg.msgId];
+    } 
+    console.log('end of reject', this._loopsStarted);
   },
 
   /// /////////
@@ -187,7 +197,20 @@ PeerHandler.prototype = {
         for (let fsidePeer in this._agent._peerHandlers) {
           if (this._agent._peerHandlers[fsidePeer]._probesReceived.cwise[probe]) {
             console.log(`have fside peer for ${probe}, ${fsidePeer}`)
-            this._startLoop(probe, fsidePeer)
+
+            // Let's just double-check the balances, and choose a loop amount
+            // of half the diff:
+
+            // our fside balance should be low because it will go up
+            const fsideBal = this._agent._peerHandlers[fsidePeer].getBalance()
+
+            // our cside balance should be high because it will go down
+            const csideBal = this.getBalance()
+
+            const diff = csideBal - fsideBal
+            const amount = diff / 2
+            debug.log('using loop', this._myName, { fsideBal, csideBal, diff, amount })
+            this._startLoop(probe, fsidePeer, amount)
             break
           }
         }
@@ -206,16 +229,9 @@ PeerHandler.prototype = {
   },
 
   // to be executed in cside peerHandler, where the fwise loop is detected:
-  _startLoop: function (routeId, fsidePeer) {
+  _startLoop: function (routeId, fsidePeer, amount) {
     // fsidePeer has sent us a fside probe, meaning they want to send a COND.
     // This Ledger said it's usable, so we should start a loop
-    // But let's just double-check the balances, and choose a loop amount of half the diff:
-
-    const fsideBal = this._agent._peerHandlers[fsidePeer].getBalance() // our fside balance should be low because it will go up
-    const csideBal = this.getBalance() // our cside balance should be high because it will go down
-    const diff = csideBal - fsideBal
-    const amount = diff / 2
-    debug.log('using loop', this._myName, { fsideBal, csideBal, diff, amount })
     const preimage = randomBytes(256)
     const hashHex = sha256(preimage).toString('hex')
     this._agent._preimages[hashHex] = preimage
@@ -226,6 +242,7 @@ PeerHandler.prototype = {
     // the COND should be sent to this ledger's peer (cside):
     const msg = this.create(amount, hashHex, routeId)
     this.send(msg)
+    this._loopsStarted[msg.msgId] = { routeId, fsidePeer, amount };
   },
 
   // to be executed on all other side when a probe comes in from one peer
