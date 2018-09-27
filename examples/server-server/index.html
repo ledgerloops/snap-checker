@@ -3,19 +3,14 @@
   <head>
     <title>LedgerLoops Demo (press F12 to see the console)</title>
     <meta charset="utf-8" />
-    <link rel="ledger" id="ledgerloopsLink" />
     <style>
     </style>
   </head>
   <body>
-    <h1>LedgerLoops Monetized Blog demo (blog part)</h1>
-    <p>This blog includes the following tag in the html header:</p>
-    <code>&lt;link rel="ledger" href="<span id="ledgerloopsLinkCode"></span>" /&gt;</code>
+    <h1>LedgerLoops Client-Server-Server demo (client-side part)</h1>
+    <p>Variation on the client-server demo, where this time only Mia lives client side. Marsellus lives on ws://localhost:8081, Vincent lives on ws://localhost:8082, and they talk to each other using http cross-post.</p>
+    <div id="data">Data...</div>
   </body>
-  <script>
-    const protocol = (window.location.protocol === 'https:' ? 'wss:' : 'ws:')
-    const chan = protocol + '//' + window.location.host;
-    document.getElementById('ledgerloopsLink').setAttribute('href', chan);
-    document.getElementById('ledgerloopsLinkCode').innerText = chan;
-  </script>
+  <script src="./ledgerloops.js"></script>
+  <script src="./client-side.js"></script>
 </html>

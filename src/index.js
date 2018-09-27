@@ -46,9 +46,11 @@ Agent.prototype = {
     return this.hubbie.listen(options);
   },
   create: function (peerName, amount, hashHex, routeId) {
+    this.ensurePeer(peerName);
     return this._peerHandlers[peerName].create(amount, hashHex, routeId);
   },
   send: function(peerName, msgObj) {
+    this.ensurePeer(peerName);
     return this._peerHandlers[peerName].send(msgObj);
   }
 };

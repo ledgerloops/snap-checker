@@ -16,8 +16,8 @@ function Ledger (peerName, myName, unit, handler) {
   this._myName = myName
   this._unit = unit
   this._currentBalance = {
-    [peerName]: 0,
-    [myName]: 0
+    me: 0,
+    you: 0
   }
   this._pendingBalance = {
     [peerName]: 0,
@@ -35,7 +35,6 @@ Ledger.prototype = {
       return {
         msgType: 'COND',
         msgId: this.myNextId++,
-        beneficiary: this._peerName,
         amount,
         unit: this._unit,
         condition,
@@ -45,7 +44,6 @@ Ledger.prototype = {
       return {
         msgType: 'ADD',
         msgId: this.myNextId++,
-        beneficiary: this._peerName,
         amount,
         unit: this._unit
       }
@@ -71,10 +69,12 @@ Ledger.prototype = {
         return
       }
     }
+    const beneficiary = (proposer == 'me' ? 'you' : 'me')
     debug.log('Handling', msg)
     switch (msg.msgType) {
       case 'ADD': {
-        this._pendingBalance[msg.beneficiary] += msg.amount
+        this._pendingBalance[beneficiary] += msg.amount
+        console.log(`pendingBalance['${beneficiary}'] += ${msg.amount}`);
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
         this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         if (!outgoing) {
@@ -89,7 +89,8 @@ Ledger.prototype = {
         break
       }
       case 'COND': {
-        this._pendingBalance[msg.beneficiary] += msg.amount
+        this._pendingBalance[beneficiary] += msg.amount
+        console.log(`pendingBalance['${beneficiary}'] += ${msg.amount}`);
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
         this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         debug.log('COND - COND - COND', this._myName, this._pendingMsg)
@@ -104,8 +105,11 @@ Ledger.prototype = {
           debug.log('panic! ACK for non-existing orig', this._pendingMsg, msg)
           panic() // eslint-disable-line no-undef
         }
-        this._pendingBalance[orig.beneficiary] -= orig.amount
-        this._currentBalance[orig.beneficiary] += orig.amount
+        this._pendingBalance[beneficiary] -= orig.amount
+        console.log(`pendingBalance['${beneficiary}'] -= ${orig.amount}`);
+        this._currentBalance[beneficiary] += orig.amount
+        console.log(`currentBalance['${beneficiary}'] += ${orig.amount}`);
+
         this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
         this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
@@ -121,8 +125,11 @@ Ledger.prototype = {
         } else {
           console.log('hash match!')
         }
-        this._pendingBalance[orig.beneficiary] -= orig.amount
-        this._currentBalance[orig.beneficiary] += orig.amount
+        this._pendingBalance[beneficiary] -= orig.amount
+        console.log(`pendingBalance['${beneficiary}'] -= ${orig.amount}`);
+        this._currentBalance[beneficiary] += orig.amount
+        console.log(`currentBalance['${beneficiary}'] += ${orig.amount}`);
+
         this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
         this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
@@ -134,7 +141,9 @@ Ledger.prototype = {
       }
       case 'REJECT': {
         const orig = this._pendingMsg[`${proposer}-${msg.msgId}`]
-        this._pendingBalance[orig.beneficiary] -= orig.amount
+        this._pendingBalance[beneficiary] -= orig.amount
+        console.log(`pendingBalance['${beneficiary}'] -= ${orig.amount}`);
+
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
         debug.log('Rejected', msg)
         break
@@ -158,7 +167,7 @@ Ledger.prototype = {
     }
   },
   getBalance: function () {
-    return this._currentBalance[this._myName] - this._currentBalance[this._peerName]
+    return this._currentBalance['me'] - this._currentBalance['you']
   }
 }
 

@@ -1,16 +1,20 @@
-8081:
+Make sure to close http://localhost:8000 before opening the servers, due to
+https://github.com/ledgerloops/ledgerloops/issues/45:
+
+server on 8081:
 ```sh
-PORT=8081 SECRET=pssst TESTNET_FRIENDS=http://localhost:8082,http://localhost:8083
+PORT=8081 SECRET=pssst TESTNET_FRIENDS=http://localhost:8082 DONATION=Mia node examples/server-server/agent-heroku.js
 ```
 
-8082:
+server on 8082:
 ```sh
-PORT=8082 SECRET=boo TESTNET_FRIENDS=http://localhost:8081,http://localhost:8083
+PORT=8082 SECRET=boo TESTNET_FRIENDS=http://localhost:8081 node examples/server-server/agent-heroku.js
+
 ```
 
-8082:
+For client-side:
 ```sh
-PORT=8083 SECRET=chai TESTNET_FRIENDS=http://localhost:8081,http://localhost:8082
+python -m SimpleHTTPServer
 ```
 
-
+Then visit the client-side page on http://localhost:8000
