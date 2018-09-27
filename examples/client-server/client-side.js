@@ -74,11 +74,17 @@ function displayAgents() {
 }
 
 ensureAgent('Mia', 'Wallace');
-agents['Mia'].ensurePeer('Marsellus', 'ws://localhost:8081');
+agents['Mia'].addClient({
+  peerName: 'Marsellus',
+  peerUrl: 'ws://localhost:8081'
+});
 agents['Mia'].ensurePeer('Vincent');
 
 ensureAgent('Vincent', 'Vega');
-agents['Vincent'].ensurePeer('Marsellus', 'ws://localhost:8081');
+agents['Vincent'].addClient({
+  peerName: 'Marsellus',
+  peerUrl: 'ws://localhost:8081'
+});
 agents['Vincent'].ensurePeer('Mia');
 
 setTimeout(() => sendAdd('Mia', 'Vincent', 1, 'USD'), 2000);

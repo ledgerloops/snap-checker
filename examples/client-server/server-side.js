@@ -1,36 +1,33 @@
 var Agent = require('../..').Agent;
 
-var agents = {
-};
-
-function ensureAgent(nick) {
-  if (typeof agents[nick] === 'undefined') {
-    agents[nick] = new Agent(nick);
+var agent = new Agent('Marsellus', 'There is no me and you. Not no more.', ({ peerName, peerSecret }) => {
+  if (peerName === 'Mia' && peerSecret === 'Wallace') {
+    console.log('Mia in the house');
+    return true;
   }
-}
-
-ensureAgent('Marsellus');
-agents['Marsellus'].listen(8081, {
-  Mia: 'Wallace',
-  Vincent: 'Vega'
+  if (peerName === 'Vincent' && peerSecret === 'Vega') {
+    console.log('Vincent in the house');
+    return true;
+  }
+  console.log('Who is this', peerName, peerSecret);
+  return false;
 });
 
-function displayAgents() {
+agent.listen({ port: 8081 });
+
+function displayAgent() {
   var text = '-------------------------------------\n';
-  for (var nick in agents) {
-    text += `${nick}:\n`;
-    for (var neighbor in agents[nick]._peerHandlers) {
-      console.log(`probes received by ${nick} from ${neighbor}`, agents[nick]._peerHandlers[neighbor]._probesReceived);
-      text += ` * Ledger with ${neighbor}: ${agents[nick]._peerHandlers[neighbor].getBalance()}\n`;
-      let k;
-      for (k in agents[nick]._peerHandlers[neighbor]._ledger._committed) {
-        const entry = agents[nick]._peerHandlers[neighbor]._ledger._committed[k];
-        text += `    -> Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}\n`;
-      }
-      for (k in agents[nick]._peerHandlers[neighbor]._ledger._pending) {
-        const entry = agents[nick]._peerHandlers[neighbor]._ledger._pending[k];
-        text += `    (...entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})\n`;
-      }
+  for (var neighbor in agent._peerHandlers) {
+    console.log(`probes received from ${neighbor}`, agent._peerHandlers[neighbor]._probesReceived);
+    text += ` * Ledger with ${neighbor}: ${agent._peerHandlers[neighbor].getBalance()}\n`;
+    let k;
+    for (k in agent._peerHandlers[neighbor]._ledger._committed) {
+      const entry = agent._peerHandlers[neighbor]._ledger._committed[k];
+      text += `    -> Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}\n`;
+    }
+    for (k in agent._peerHandlers[neighbor]._ledger._pending) {
+      const entry = agent._peerHandlers[neighbor]._ledger._pending[k];
+      text += `    (...entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})\n`;
     }
   }
   console.log(text);
@@ -40,4 +37,4 @@ function displayAgents() {
 //   const msg = agents['Marsellus']._peerHandlers['Mia'].create(1);
 //   agents['Marsellus']._peerHandlers['Mia'].send(msg);
 // }, 10000);
-setInterval(displayAgents, 20000);
+setInterval(displayAgent, 20000);

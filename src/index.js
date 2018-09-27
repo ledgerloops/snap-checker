@@ -2,6 +2,9 @@ var PeerHandler = require('./peerhandler')
 var Hubbie = require('hubbie')
 
 function Agent (myNick, mySecret, credsHandler) {
+  if (!credsHandler) {
+    credsHandler = () => true;
+  }
   this._myNick = myNick
   this._mySecret = mySecret
   this._peerHandlers = {}
@@ -33,9 +36,9 @@ Agent.prototype = {
     }
   },
   addClient: function(options) {
-    this.ensurePeer(options.peerNick);
+    this.ensurePeer(options.peerName);
     return this.hubbie.addClient(Object.assign({
-      myNick: this._myNick,
+      myName: this._myNick,
       mySecret: this._mySecret
     }, options));
   },
