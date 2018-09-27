@@ -83,7 +83,7 @@ agents['Mia'].ensurePeer('Vincent');
 ensureAgent('Vincent', 'Vega');
 agents['Vincent'].addClient({
   peerName: 'Marsellus',
-  peerUrl: 'ws://localhost:8083'
+  peerUrl: 'ws://localhost:8081'
 });
 agents['Vincent'].ensurePeer('Mia');
 
