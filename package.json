@@ -32,7 +32,7 @@
     "test": "grunt test",
     "lint": "eslint src/**/*.js test/**/*.js",
     "build": "grunt build",
-    "start": "node examples/server-server/agent-heroku.js",
+    "start": "node examples/testnet/agent-heroku.js",
     "watch": "grunt watch"
   },
   "testling": {
