@@ -153,7 +153,7 @@ PeerHandler.prototype = {
         reason: msg.reason
       }
       this._agent._peerHandlers[backer].send(backMsg)
-    } else if (this._loopsStarted[msg.msgId]) && (msg.reason === 'try a lower amount') {
+    } else if ((this._loopsStarted[msg.msgId]) && (msg.reason === 'try a lower amount')) {
       const loop = this._loopsStarted[msg.id];
       this._startLoop(loop.routeId, loop.fsidePeer, loop.amount/2);
       delete this._loopsStarted[msg.id];
