@@ -7,7 +7,8 @@
     "test": "test"
   },
   "dependencies": {
-    "hubbie": "git+https://github.com/michielbdejong/hubbie.git",
+    "hubbie": "^3.2.1",
+    "node-fetch": "^2.2.0",
     "randombytes": "^2.0.6",
     "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
   },

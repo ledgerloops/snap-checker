@@ -4,7 +4,7 @@ var agent = new Agent('heroku', process.env.SECRET, () => true);
 
 var http = require('http');
 var fs = require('fs');
-var htmlPage = fs.readFileSync('./examples/monetized-blog-heroku/index.html');
+var htmlPage = fs.readFileSync('./examples/server-server/index.html');
 
 var handler = (req, res) => {
   if (req.url == '/') {
@@ -23,6 +23,11 @@ if (typeof process.env.TESTNET_FRIENDS == 'string') {
       peerName: friendWssUrl
     });
   });
+}
+
+if (process.env.DONATION) {
+  const donation = agent.create(process.env.DONATION, 1);
+  agent.send(process.env.DONATION, donation);
 }
 
 console.log('listening on port', process.env.PORT);
