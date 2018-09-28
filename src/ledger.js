@@ -70,7 +70,6 @@ Ledger.prototype = {
       }
     }
     const beneficiary = (proposer == 'me' ? 'you' : 'me')
-    debug.log('Handling', msg)
     switch (msg.msgType) {
       case 'ADD': {
         this._pendingBalance[beneficiary] += msg.amount
@@ -91,7 +90,6 @@ Ledger.prototype = {
         this._pendingBalance[beneficiary] += msg.amount
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
         this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
-        debug.log('COND - COND - COND', this._myName, this._pendingMsg)
         if (!outgoing) {
           this._handler._handleCond(msg)
         }
@@ -109,12 +107,10 @@ Ledger.prototype = {
         this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
         this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
-        debug.log('Committed', msg)
         break
       }
       case 'FULFILL': {
         const orig = this._pendingMsg[`${proposer}-${msg.msgId}`]
-        debug.log('FULFILL - FULFILL - FULFILL', this._myName, this._pendingMsg)
         if (!verifyHash(msg.preimage, orig.condition)) {
           console.log('no hash match!', msg, orig)
           return
@@ -127,7 +123,6 @@ Ledger.prototype = {
         this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
         this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
-        debug.log('Committed', msg)
         if (!outgoing) {
           this._handler._handleFulfill(msg)
         }
@@ -138,7 +133,6 @@ Ledger.prototype = {
         this._pendingBalance[beneficiary] -= orig.amount
 
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
-        debug.log('Rejected', msg)
         if (!outgoing) {
           this._handler._handleReject(msg)
         }

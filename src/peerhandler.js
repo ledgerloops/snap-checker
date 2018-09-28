@@ -65,7 +65,6 @@ PeerHandler.prototype = {
     }, 100)
   },
   _doHandleCond: function (msg) {
-    debug.log(`Agent ${this._myName} handles COND that comes in from ${this._peerName}`, msg)
     if (this._agent._preimages[msg.condition]) {
       debug.log('replying with fulfill!', msg.condition, this._agent._preimages[msg.condition].toString('hex'))
       const reply = {
