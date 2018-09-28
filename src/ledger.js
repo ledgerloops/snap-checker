@@ -46,6 +46,28 @@ Ledger.prototype = {
   getBalance: function () {
     return this._balance.bank;
   },
+  getLowerPeers: function (limit) {
+    let list = [];
+    for (let peerName in this._balance) {
+      // imagine all this peer's receivables succeed, and all his payables fail: 
+      const highestBalanceEstimate = this._balance[peerName].current + this._balance[peerName].receivable;
+      if (highestBalanceEstimate < limit) {
+        list.push([peerName, highestBalanceEstimate]);
+      }
+    }
+    return list.sort((a, b) => b[1] - a[1]); // lowest first
+  },
+  getHigherPeers: function (limit) {
+    let list = [];
+    for (let peerName in this._balance) {
+      // imagine all this peer's receivables fail, and all his payables succeed: 
+      const lowestBalanceEstimate = this._balance[peerName].current - this._balance[peerName].payable;
+      if (lowestBalanceEstimate > limit) {
+        list.push([peerName, lowestBalanceEstimate]);
+      }
+    }
+    return list.sort((a, b) => a[1] - b[1]); // highest first
+  },
   markAsPending: function (peerName, msg, outgoing) {
     console.log(`${this._myName} marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${this._peerName}`, msg);
     const proposer = (outgoing ? 'bank' : peerName);
