@@ -1,6 +1,8 @@
 var PeerHandler = require('./peerhandler')
 var Hubbie = require('hubbie')
 
+const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
+
 function Agent (myName, mySecret, credsHandler) {
   if (!credsHandler) {
     credsHandler = () => true;
@@ -11,7 +13,15 @@ function Agent (myName, mySecret, credsHandler) {
   this._preimages = {}
   this.hubbie = new Hubbie();
   this.hubbie.listen({ myName: myName });
-  this.hubbie.on('peer', credsHandler);
+  this.hubbie.on('peer', (eventObj) => {
+    if (eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
+      console.error('Client does not support ' + LEDGERLOOPS_PROTOCOL_VERSION, eventObj);
+      return false;
+    }
+    if (credsHandler(eventObj) {
+      return LEDGERLOOPS_PROTOCOL_VERSION;
+    }
+  });
   this.hubbie.on('message', (peerName, msg) => {
     if (!this._peerHandlers[peerName]) {
       this.ensurePeer(peerName);
@@ -39,7 +49,8 @@ Agent.prototype = {
     this.ensurePeer(options.peerName);
     return this.hubbie.addClient(Object.assign({
       myName: this._myName,
-      mySecret: this._mySecret
+      mySecret: this._mySecret,
+      protocols: [ LEDGERLOOPS_PROTOCOL_VERSION ]
     }, options));
   },
   listen: function (options) {
