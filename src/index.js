@@ -14,11 +14,11 @@ function Agent (myName, mySecret, credsHandler) {
   this.hubbie = new Hubbie();
   this.hubbie.listen({ myName: myName });
   this.hubbie.on('peer', (eventObj) => {
-    if (eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
+    if (eventObj.protocols && eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
       console.error('Client does not support ' + LEDGERLOOPS_PROTOCOL_VERSION, eventObj);
       return false;
     }
-    if (credsHandler(eventObj) {
+    if (credsHandler(eventObj)) {
       return LEDGERLOOPS_PROTOCOL_VERSION;
     }
   });
