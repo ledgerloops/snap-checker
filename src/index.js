@@ -1,18 +1,7 @@
-var Hubbie = require('hubbie')
-var Ledger = require('./ledger')
-var Loops = require('./loops')
-var shajs = require('sha.js')
-
-function sha256 (x) {
-  return shajs('sha256').update(x).digest()
-}
-
-function verifyHash (preimageHex, hashHex) {
-  const preimage = Buffer.from(preimageHex, 'hex')
-  const correctHash = sha256(preimage)
-  return Buffer.from(hashHex, 'hex').equals(correctHash)
-}
-
+var verifyHash = require('./hashlocks').verifyHash;
+var Hubbie = require('hubbie');
+var Ledger = require('./ledger');
+var Loops = require('./loops');
 
 const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
 
@@ -25,12 +14,12 @@ function Agent (myName, mySecret, credsHandler) {
   }
   this._myName = myName
   this._mySecret = mySecret
-  this.hubbie = new Hubbie();
-  this.ledger = new Ledger();
-  this.loops = new Loops(this);
+  this._hubbie = new Hubbie();
+  this._ledger = new Ledger();
+  this._loops = new Loops(this);
   this._pendingOutgoingProposals = {};
-  this.hubbie.listen({ myName: myName });
-  this.hubbie.on('peer', (eventObj) => {
+  this._hubbie.listen({ myName: myName });
+  this._hubbie.on('peer', (eventObj) => {
     if (eventObj.protocols && eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
       console.error('Client does not support ' + LEDGERLOOPS_PROTOCOL_VERSION, eventObj);
       return false;
@@ -39,7 +28,7 @@ function Agent (myName, mySecret, credsHandler) {
       return LEDGERLOOPS_PROTOCOL_VERSION;
     }
   });
-  this.hubbie.on('message', (peerName, msg) => {
+  this._hubbie.on('message', (peerName, msg) => {
     let msgObj;
     try {
       msgObj = JSON.parse(msg);
@@ -50,10 +39,12 @@ function Agent (myName, mySecret, credsHandler) {
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
-        this.ledger.markPending(peerName, msgObj, false);
-        const responseObj = this.loops.getResponse(peerName, msgObj);
-        this.ledger.resolvePending(peerName, responseObj, false);
-        this.hubbie.send(peerName, JSON.stringify(responseObj));
+        this._ledger.markPending(peerName, msgObj, false);
+        this._loops.getResponse(peerName, msgObj).then((responseObj) => {
+          return this._hubbie.send(peerName, JSON.stringify(responseObj));
+        }).then(() => {
+          this._ledger.resolvePending(peerName, responseObj, false);
+        });
         break;
       }
       case 'FULFILL': {
@@ -71,40 +62,30 @@ function Agent (myName, mySecret, credsHandler) {
         // fall-through from FULFILL to ACK:
       }
       case 'ACK': {
-        this.ledger.resolvePending(peerName, orig, true);
+        this._ledger.resolvePending(peerName, orig, true);
         const resolve = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].resolve;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msId];
         resolve(msg.preimage);
         break;
       }
       case 'REJECT': {
-        this.ledger.resolvePending(peerName, msgObj, true);
+        this._ledger.resolvePending(peerName, msgObj, true);
         const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msId];
         reject(new Error(msg.reason));
         break;
       }
       default: {
-        this.loops.handleControlMessage(peerName, msgObj);
+        this._loops.handleControlMessage(peerName, msgObj);
       }
     };
   });
 }
 
 Agent.prototype = {
-  addClient: function(options) {
-    return this.hubbie.addClient(Object.assign({
-      myName: this._myName,
-      mySecret: this._mySecret,
-      protocols: [ LEDGERLOOPS_PROTOCOL_VERSION ]
-    }, options));
-  },
-  listen: function (options) {
-    return this.hubbie.listen(Object.assign({
-      protocolName: LEDGERLOOPS_PROTOCOL_VERSION
-    }, options));
-  },
-  propose: function (peerName, amount, hashHex, routeId) {
+
+  // private, to be called by Loops handler:
+  _propose: function (peerName, amount, hashHex, routeId) {
     const msgObj = this.ledger.create(peerName, amount, hashHex, routeId);
     this.ledger.markPending(peerName, msgObj, true);
     const promise = new Promise ((resolve, reject) => {
@@ -122,8 +103,25 @@ Agent.prototype = {
     sendAndRetry();
     return promise;
   },
-  sendCtrl: function(peerName, msgObj) {
+  _sendCtrl: function(peerName, msgObj) {
     return this.hubbie.send(peerName, msgObj);
+  },
+
+  // public:
+  addClient: function(options) {
+    return this.hubbie.addClient(Object.assign({
+      myName: this._myName,
+      mySecret: this._mySecret,
+      protocols: [ LEDGERLOOPS_PROTOCOL_VERSION ]
+    }, options));
+  },
+  listen: function (options) {
+    return this.hubbie.listen(Object.assign({
+      protocolName: LEDGERLOOPS_PROTOCOL_VERSION
+    }, options));
+  },
+  addTransaction: function (peerName, amount) {
+    return this._propose(peerName, amount);
   }
 };
 

@@ -1,17 +1,24 @@
-Refactor:
+var sha256 = require('./hashlocks').sha256;
 
-Hubbie Ledger Loops
+function Loops(agent) {
+  this.agent = agent;
+}
 
-Ledger Object interface:
-on('proposal') -> result
-propose(peerName, amount, hashHex, routeId) -> result
-sendCtrl(probes/pleaseFinalize)
-on('control')
-getBalances(filter)
-
-proposal can be (peerName, amount, hashHex, routeId)
-result can be fulfillment/ack/reject
-
-balance filters:
- * myBalanceLt (conservative, so assuming my outgoing transactions all succeed, and no incoming pending transactions succeed)
- * myBalanceGt (conservative, so assuming none of my outgoing transactions succeed, and all incoming pending transactions succeed)
+Loops.prototype = {
+  getResponse: function (peerName, msgObj) {
+    if (msgObj.msgType === 'ADD') {
+      return Promise.resolve({
+        msgId: msgObj.msgId,
+        msgType: 'ACK'
+      });
+    }
+    return Promise.resolve({
+      msgId: msgObj.msgId,
+      msgType: 'REJECT',
+      reason: 'Loops handler not implemented yet'
+    });
+  },
+  handleControlMessage: function () {
+    // not implemented yet
+  }
+};
