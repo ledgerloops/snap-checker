@@ -33,7 +33,6 @@ function Agent (myName, mySecret, credsHandler) {
       console.error('msg not JSON', peerName, msg);
       return;
     }
-    console.log('calling handleMessage, incoming')
     this._peerHandlers[peerName]._ledger.handleMessage(msgObj, false);
   });
 }
@@ -41,7 +40,6 @@ function Agent (myName, mySecret, credsHandler) {
 Agent.prototype = {
   ensurePeer: function (peerName) {
     if (typeof this._peerHandlers[peerName] === 'undefined') {
-      console.log('agent gets new peer handler', peerName)
       this._peerHandlers[peerName] = new PeerHandler(peerName, this._myName, 'UCR', this);
     }
   },

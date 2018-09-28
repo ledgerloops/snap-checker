@@ -74,7 +74,6 @@ Ledger.prototype = {
     switch (msg.msgType) {
       case 'ADD': {
         this._pendingBalance[beneficiary] += msg.amount
-        console.log(`pendingBalance['${beneficiary}'] += ${msg.amount}`);
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
         this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         if (!outgoing) {
@@ -90,7 +89,6 @@ Ledger.prototype = {
       }
       case 'COND': {
         this._pendingBalance[beneficiary] += msg.amount
-        console.log(`pendingBalance['${beneficiary}'] += ${msg.amount}`);
         this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
         this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
         debug.log('COND - COND - COND', this._myName, this._pendingMsg)
@@ -106,9 +104,7 @@ Ledger.prototype = {
           panic() // eslint-disable-line no-undef
         }
         this._pendingBalance[beneficiary] -= orig.amount
-        console.log(`pendingBalance['${beneficiary}'] -= ${orig.amount}`);
         this._currentBalance[beneficiary] += orig.amount
-        console.log(`currentBalance['${beneficiary}'] += ${orig.amount}`);
 
         this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
         this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
@@ -126,9 +122,7 @@ Ledger.prototype = {
           console.log('hash match!')
         }
         this._pendingBalance[beneficiary] -= orig.amount
-        console.log(`pendingBalance['${beneficiary}'] -= ${orig.amount}`);
         this._currentBalance[beneficiary] += orig.amount
-        console.log(`currentBalance['${beneficiary}'] += ${orig.amount}`);
 
         this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
         this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
@@ -142,7 +136,6 @@ Ledger.prototype = {
       case 'REJECT': {
         const orig = this._pendingMsg[`${proposer}-${msg.msgId}`]
         this._pendingBalance[beneficiary] -= orig.amount
-        console.log(`pendingBalance['${beneficiary}'] -= ${orig.amount}`);
 
         delete this._pendingMsg[`${proposer}-${msg.msgId}`]
         debug.log('Rejected', msg)

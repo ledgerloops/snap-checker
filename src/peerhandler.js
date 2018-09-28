@@ -21,8 +21,6 @@ function PeerHandler (peerName, myName, unit, agent) {
 
 PeerHandler.prototype = {
   send: function (msgObj) {
-    console.log(`peerhandler ${this._myName} sends to ${this._peerName}!`, msgObj)
-    console.log('calling handleMessage, outgoing')
     this._ledger.handleMessage(msgObj, true)
     return this._agent.hubbie.send(this._peerName, JSON.stringify(msgObj))
   },
@@ -144,9 +142,7 @@ PeerHandler.prototype = {
   },
 
   _handleReject: function (msg) {
-    console.log('handle reject!', msg);
     if (this._pendingCond[msg.msgId]) {
-      console.log('pending cond!');
       const backer = this._pendingCond[msg.msgId].fromName
       delete this._agent._peerHandlers[backer]._forwardedPending[msg.msgId]
       const backMsg = {
@@ -161,7 +157,6 @@ PeerHandler.prototype = {
       this._startLoop(loop.routeId, loop.fsidePeer, loop.amount/2);
       delete this._loopsStarted[msg.msgId];
     } 
-    console.log('end of reject', this._loopsStarted);
   },
 
   /// /////////
@@ -224,7 +219,9 @@ PeerHandler.prototype = {
     })
     const thisBal = this.getBalance()
     for (let otherPeer in this._agent._peerHandlers) {
-      this._agent._peerHandlers[otherPeer].considerProbe(thisBal, msg, this._peerName)
+      if (otherPeer !== this._peerName) {
+        this._agent._peerHandlers[otherPeer].considerProbe(thisBal, msg, this._peerName)
+      }
     }
   },
 
