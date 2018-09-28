@@ -1,5 +1,3 @@
-const debug = require('./debug')
-var Ledger = require('./ledger')
 var randomBytes = require('randombytes')
 var shajs = require('sha.js')
 
