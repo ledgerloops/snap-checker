@@ -38,10 +38,10 @@ Loops.prototype = {
       ['cwise', 'fwise'].map(direction => {
         msgObj[direction].map(routeId => {
           this._probesRcvd[peerName][direction][routeId] = true;
-        };
-      }
+        });
+      });
     }
-  }
+  },
   _considerPair: function (from, to, direction) {
     if (typeof this._probesSent[to] === 'undefined') {
       this._probesSent[to] = {
