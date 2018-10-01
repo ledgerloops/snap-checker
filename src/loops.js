@@ -44,6 +44,7 @@ Loops.prototype = {
     }
   },
   _considerPair: function (from, to, direction) {
+    const oppositeDirection = (direction === 'fwise' ? 'cwise' : 'fwise');
     if (typeof this._probesSent[to] === 'undefined') {
       this._probesSent[to] = {
         cwise: {},
@@ -54,6 +55,9 @@ Loops.prototype = {
       this._probesSent[to][direction]['null'] = false;
     } else {
       for (let routeId in this._probesRcvd[from][direction]) {
+        if (this._probesSent[to][direction][routeId]) {
+          console.log('LOOP FOUND!');
+        }
         this._probesSent[to][direction][routeId] = false;
       }
     }
