@@ -1,9 +1,8 @@
-function Ledger (unit, handler) {
+function Ledger (unit) {
   this._unit = unit
   this._balance = {};
   this._committed = {}
   this._pendingMsg = {}
-  this._handler = handler
   this.myNextId = {}
 }
 
@@ -31,6 +30,8 @@ Ledger.prototype = {
     }
   },
   addBalance: function (party, account, amount) {
+    console.log('addBalance', { party, account, amount });
+ 
     if (!this._balance[party]) {
       this._balance[party] = {
         current: 0,
@@ -72,16 +73,16 @@ Ledger.prototype = {
     return list.sort((a, b) => a[1] - b[1]); // highest first
   },
   markAsPending: function (peerName, msg, outgoing) {
-    console.log(`${this._myName} marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${this._peerName}`, msg);
+    console.log(`Bank marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, msg);
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
     this.addBalance(proposer, 'payable', msg.amount);
     this.addBalance(beneficiary, 'receivable', msg.amount);
-    this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
-    this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
+    this._pendingMsg[`${proposer}-${beneficiary}-${msg.msgId}`] = msg
+    this._pendingMsg[`${proposer}-${beneficiary}-${msg.msgId}`].date = new Date().getTime();
   },
   resolvePending: function (peerName, orig, outgoing, commit) {
-    console.log(`${this._myName} resolves-Pending message ${(outgoing ? 'to' : 'from')} ${this._peerName}`, orig, { commit });
+    console.log(`Bank resolves-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, orig, { commit });
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
     this.addBalance(proposer, 'payable', -orig.amount);
@@ -90,10 +91,10 @@ Ledger.prototype = {
       this.addBalance(proposer, 'current', -orig.amount);
       this.addBalance(beneficiary, 'current', orig.amount);
 
-      this._committed[`${proposer}-${orig.msgId}`] = this._pendingMsg[`${proposer}-${orig.msgId}`]
-      this._committed[`${proposer}-${orig.msgId}`].date = new Date().getTime();
+      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`] = this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`]
+      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`].date = new Date().getTime();
     }
-    delete this._pendingMsg[`${proposer}-${orig.msgId}`];
+    delete this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`];
   }
 }
 

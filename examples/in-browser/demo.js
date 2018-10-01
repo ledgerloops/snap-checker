@@ -33,11 +33,11 @@ function displayAgents() {
     const transactions = agents[nick].getTransactions();
     for (let k in transactions.committed) {
       const entry = transactions.committed[k];
-      html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
+      html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.amount}</strong></li>`;
     }
     for (let k in transactions.pending) {
       const entry = transactions.pending[k];
-      html += `<li>(entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})</li>`;
+      html += `<li>(entry ${k}: ${entry.msgType} ${entry.amount})</li>`;
     }
     html += `</ul>`;
   }

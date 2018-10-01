@@ -4,6 +4,7 @@ var Ledger = require('./ledger');
 var Loops = require('./loops');
 
 const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
+const UNIT_OF_VALUE = 'UCR';
 
 const INITIAL_RESEND_DELAY = 100;
 const RESEND_INTERVAL_BACKOFF = 1.5;
@@ -15,7 +16,7 @@ function Agent (myName, mySecret, credsHandler) {
   this._myName = myName
   this._mySecret = mySecret
   this._hubbie = new Hubbie();
-  this._ledger = new Ledger();
+  this._ledger = new Ledger(UNIT_OF_VALUE);
   this._loops = new Loops(this);
   this._pendingOutgoingProposals = {};
   this._hubbie.listen({ myName: myName });
@@ -40,9 +41,11 @@ function Agent (myName, mySecret, credsHandler) {
       case 'ADD':
       case 'COND': {
         this._ledger.markAsPending(peerName, msgObj, false);
-        return this._loops.getResponse(peerName, msgObj).then((responseObj) => {
-          this._hubbie.send(peerName, JSON.stringify(responseObj));
-          return this._ledger.resolvePending(peerName, responseObj, false);
+        return this._loops.getResponse(peerName, msgObj).then((response) => {
+          this._hubbie.send(peerName, JSON.stringify(response.msgObj));
+
+          // resolvePending: function (peerName, orig, outgoing, commit) {
+          return this._ledger.resolvePending(peerName, msgObj, false, response.commit);
         });
         break;
       }
@@ -62,14 +65,17 @@ function Agent (myName, mySecret, credsHandler) {
       }
       case 'ACK': {
         const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
-        this._ledger.resolvePending(peerName, orig, true);
+        console.log('received ACK', { msgObj, orig });
+        // resolvePending: function (peerName, orig, outgoing, commit) {
+        this._ledger.resolvePending(peerName, orig, true, true);
         const resolve = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].resolve;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
         resolve(msg.preimage);
         break;
       }
       case 'REJECT': {
-        this._ledger.resolvePending(peerName, msgObj, true);
+        // resolvePending: function (peerName, orig, outgoing, commit) {
+        this._ledger.resolvePending(peerName, msgObj, true, false);
         const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
         reject(new Error(msg.reason));

@@ -8,14 +8,20 @@ Loops.prototype = {
   getResponse: function (peerName, msgObj) {
     if (msgObj.msgType === 'ADD') {
       return Promise.resolve({
-        msgId: msgObj.msgId,
-        msgType: 'ACK'
+        msgObj: {
+          msgId: msgObj.msgId,
+          msgType: 'ACK'
+        },
+        commit: true
       });
     }
-    return Promise.resolve({
-      msgId: msgObj.msgId,
-      msgType: 'REJECT',
-      reason: 'Loops handler not implemented yet'
+    return Promise.reject({
+      msgObj: {
+        msgId: msgObj.msgId,
+        msgType: 'REJECT',
+        reason: 'Loops handler not implemented yet'
+      },
+      commit: false
     });
   },
   handleControlMessage: function () {
