@@ -22,3 +22,5 @@ Loops.prototype = {
     // not implemented yet
   }
 };
+
+module.exports = Loops;

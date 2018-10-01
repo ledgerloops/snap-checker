@@ -1,11 +1,6 @@
 function Ledger (unit, handler) {
   this._unit = unit
-  this._currentBalance = {
-    bank: 0
-  };
-  this._pendingBalance = {
-    bank: 0
-  };
+  this._balance = {};
   this._committed = {}
   this._pendingMsg = {}
   this._handler = handler
@@ -45,8 +40,14 @@ Ledger.prototype = {
     }
     this._balance[party][account] += amount;
   },
-  getBalance: function () {
-    return this._balance.bank;
+  getBalances: function () {
+    return this._balance;
+  },
+  getTransactions: function () {
+    return {
+      committed: this._committed,
+      pending: this._pending
+    };
   },
   getLowerPeers: function (limit) {
     let list = [];
@@ -80,19 +81,19 @@ Ledger.prototype = {
     this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
   },
   resolvePending: function (peerName, orig, outgoing, commit) {
-    console.log(`${this._myName} resolves-Pending message ${(outgoing ? 'to' : 'from')} ${this._peerName}`, msg, { commit });
+    console.log(`${this._myName} resolves-Pending message ${(outgoing ? 'to' : 'from')} ${this._peerName}`, orig, { commit });
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
-    this.addBalance(proposer, 'payable', -msg.amount);
-    this.addBalance(beneficiary, 'receivable', -msg.amount);
+    this.addBalance(proposer, 'payable', -orig.amount);
+    this.addBalance(beneficiary, 'receivable', -orig.amount);
     if (commit) {
-      this.addBalance(proposer, 'current', -msg.amount);
-      this.addBalance(beneficiary, 'current', msg.amount);
+      this.addBalance(proposer, 'current', -orig.amount);
+      this.addBalance(beneficiary, 'current', orig.amount);
 
       this._committed[`${proposer}-${orig.msgId}`] = this._pendingMsg[`${proposer}-${orig.msgId}`]
       this._committed[`${proposer}-${orig.msgId}`].date = new Date().getTime();
     }
-    delete this._pendingMsg[`${proposer}-${msg.msgId}`];
+    delete this._pendingMsg[`${proposer}-${orig.msgId}`];
   }
 }
 

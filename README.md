@@ -9,6 +9,39 @@ Examples:
 * monetized-blog: static page, combined with a WebSocket server, that will accrue money when a user with the LedgerLoops browser extension visits this page. This demo is still under construction. See https://github.com/ledgerloops/ledgerloops/issues/21.
 * monetized-blog-heroku: Same as the previous demo, but running on Heroku instead of on localhost, and with the statics server rolled into the LedgerLoops agent server.
 
+* API
+
+* LedgerLoops.Agent constructor (myName, mySecret, credsHandler)
+  * myName and mySecret are used when connecting to a server
+  * credsHandler `({ peerName, peerSecret}) => Boolean` is called when someone else connects as a client
+
+* Agent#addClient: function(options) {
+    return this.hubbie.addClient(Object.assign({
+      myName: this._myName,
+      mySecret: this._mySecret,
+      protocols: [ LEDGERLOOPS_PROTOCOL_VERSION ]
+    }, options));
+  }
+
+* Agent#listen: function (options) {
+    return this.hubbie.listen(Object.assign({
+      protocolName: LEDGERLOOPS_PROTOCOL_VERSION
+    }, options));
+  }
+
+* Agent#addTransaction: function (peerName, amount)
+    return this._propose(peerName, amount);
+  }
+
+* Agent#getBalance ()
+  * returns a hash with the bank's current, payable, receivable balances.
+
+# * Agent#payIntoNetwork(peerName, value)
+#   * instruct the Loops engine to use your balance from the account with that peer to pay into the network
+# 
+# * Agent#receiveFromNetwork(peerName, value)
+#   * instruct the Loops engine to use the account with that peer to receive balance from the network
+
 Messages and their fields when on the wire:
 
 * ADD

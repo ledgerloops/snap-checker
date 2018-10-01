@@ -9,14 +9,11 @@ function ensureAgent(nick) {
   }
 }
 
-function sendAdd(from, to, amount, currency) {
+function sendAdd(from, to, amount) {
   ensureAgent(from);
   ensureAgent(to);
-  console.log('sendAdd calling ensurePeer');
-  agents[from].ensurePeer(to);
-  agents[to].ensurePeer(from);
-  const msg = agents[from]._peerHandlers[to].create(amount);
-  agents[from]._peerHandlers[to].send(msg);
+  console.log('sendAdd calling addTransaction');
+  agents[from].addTransaction(to, amount);
 }
 
 if (typeof window !== 'undefined') {
@@ -25,21 +22,22 @@ if (typeof window !== 'undefined') {
 }
 
 function displayAgents() {
-  var html = '';
-  for (var nick in agents) {
-    html += `<p>${nick}:</p><ul>`;
-    for (var neighbor in agents[nick]._peerHandlers) {
-      html += `<li>Ledger with ${neighbor}: ${agents[nick]._peerHandlers[neighbor].getBalance()}<ul>`;
-      let k;
-      for (k in agents[nick]._peerHandlers[neighbor]._ledger._committed) {
-        const entry = agents[nick]._peerHandlers[neighbor]._ledger._committed[k];
-        html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
-      }
-      for (k in agents[nick]._peerHandlers[neighbor]._ledger._pending) {
-        const entry = agents[nick]._peerHandlers[neighbor]._ledger._pending[k];
-        html += `<li>(entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})</li>`;
-      }
-      html += '</ul></li>';
+  let html = '';
+  for (let nick in agents) {
+    html += `<h1>${nick} sees</h1><h2>Balances:</h2><ul>`;
+    const balances = agents[nick].getBalances();
+    for (let neighbor in balances) {
+      html += `<li>${neighbor}: ${balances[neighbor].current} +(${balances[neighbor].payable}) -(${balances[neighbor].receivable})</li>`;
+    }
+    html += '</ul><h2>Transactions:</h2><ul>';
+    const transactions = agents[nick].getTransactions();
+    for (let k in transactions.committed) {
+      const entry = transactions.committed[k];
+      html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
+    }
+    for (let k in transactions.pending) {
+      const entry = transactions.pending[k];
+      html += `<li>(entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})</li>`;
     }
     html += `</ul>`;
   }
@@ -61,7 +59,7 @@ function sendButton(amount) {
   if (from === to) {
     window.alert('Receiver nick should be different from sender nick');
   } else {
-    sendAdd(from, to, amount, 'USD');
+    sendAdd(from, to, amount);
   }
 }
 
@@ -119,7 +117,7 @@ document.getElementById('send-5').onclick = function() {
 };
 
 var initialAgents = ['Mia', 'Vincent', 'Marsellus'];
-setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1, 'USD'), 0);
-setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 5, 'USD'), 100);
-setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1, 'USD'), 200);
+setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1), 0);
+setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 5), 100);
+setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1), 200);
 setInterval(displayAgents, 1000);

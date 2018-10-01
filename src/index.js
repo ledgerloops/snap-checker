@@ -39,11 +39,10 @@ function Agent (myName, mySecret, credsHandler) {
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
-        this._ledger.markPending(peerName, msgObj, false);
-        this._loops.getResponse(peerName, msgObj).then((responseObj) => {
-          return this._hubbie.send(peerName, JSON.stringify(responseObj));
-        }).then(() => {
-          this._ledger.resolvePending(peerName, responseObj, false);
+        this._ledger.markAsPending(peerName, msgObj, false);
+        return this._loops.getResponse(peerName, msgObj).then((responseObj) => {
+          this._hubbie.send(peerName, JSON.stringify(responseObj));
+          return this._ledger.resolvePending(peerName, responseObj, false);
         });
         break;
       }
@@ -62,16 +61,17 @@ function Agent (myName, mySecret, credsHandler) {
         // fall-through from FULFILL to ACK:
       }
       case 'ACK': {
+        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
         this._ledger.resolvePending(peerName, orig, true);
         const resolve = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].resolve;
-        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msId];
+        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
         resolve(msg.preimage);
         break;
       }
       case 'REJECT': {
         this._ledger.resolvePending(peerName, msgObj, true);
         const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
-        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msId];
+        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
         reject(new Error(msg.reason));
         break;
       }
@@ -86,17 +86,18 @@ Agent.prototype = {
 
   // private, to be called by Loops handler:
   _propose: function (peerName, amount, hashHex, routeId) {
-    const msgObj = this.ledger.create(peerName, amount, hashHex, routeId);
-    this.ledger.markPending(peerName, msgObj, true);
+    const msgObj = this._ledger.create(peerName, amount, hashHex, routeId);
+    this._ledger.markAsPending(peerName, msgObj, true);
     const promise = new Promise ((resolve, reject) => {
-      this._pendingOutgoingProposals[peerName + '-' + msgObj.msId] = { resolve, reject, msgObj };
+      this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] = { resolve, reject, msgObj };
     });
+    console.log('proposing', peerName + '-' + msgObj.msgId);
     let resendDelay = INITIAL_RESEND_DELAY
     const sendAndRetry = () => {
-      if (!this._pendingOutgoingProposals[peerName + '-' + msgObj.msId]) {
+      if (!this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId]) {
         return;
       }
-      this.hubbie.send(peerName, msgObj, true);
+      this._hubbie.send(peerName, JSON.stringify(msgObj), true);
       resendDelay *= RESEND_INTERVAL_BACKOFF;
       setTimeout(sendAndRetry, resendDelay);
     };
@@ -104,24 +105,36 @@ Agent.prototype = {
     return promise;
   },
   _sendCtrl: function(peerName, msgObj) {
-    return this.hubbie.send(peerName, msgObj);
+    return this._hubbie.send(peerName, JSON.stringfify(msgObj));
   },
 
   // public:
   addClient: function(options) {
-    return this.hubbie.addClient(Object.assign({
+    return this._hubbie.addClient(Object.assign({
       myName: this._myName,
       mySecret: this._mySecret,
       protocols: [ LEDGERLOOPS_PROTOCOL_VERSION ]
     }, options));
   },
   listen: function (options) {
-    return this.hubbie.listen(Object.assign({
+    return this._hubbie.listen(Object.assign({
       protocolName: LEDGERLOOPS_PROTOCOL_VERSION
     }, options));
   },
   addTransaction: function (peerName, amount) {
     return this._propose(peerName, amount);
+  },
+  getBalances: function() {
+    return this._ledger.getBalances();
+  },
+  getTransactions: function() {
+    return this._ledger.getTransactions();
+  },
+  payIntoNetwork: function(peerName, value) {
+    return this._loops.payIntoNetwork(peerName, value);
+  },
+  receiveFromNetwork: function(peerName, value) {
+    return this._loops.receiveFromNetwork(peerName, value);
   }
 };
 
