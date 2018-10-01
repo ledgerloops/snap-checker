@@ -35,7 +35,7 @@ Ledger.prototype = {
       }
     }
   },
-  addBalance: function (party) {
+  addBalance: function (party, account, amount) {
     if (!this._balance[party]) {
       this._balance[party] = {
         current: 0,
@@ -43,6 +43,8 @@ Ledger.prototype = {
         payable: 0
       };
     }
+    this._balance[party][account] += amount;
+  },
   getBalance: function () {
     return this._balance.bank;
   },

@@ -1,9 +1,6 @@
 var Ledger = require('../../src/ledger')
-var debug = require('../../src/debug')
 var assert = require('assert')
 // var sinon = require('sinon');
-
-debug.setLevel(false)
 
 describe('Ledger', function () {
   beforeEach(function() {
