@@ -112,7 +112,7 @@ Agent.prototype = {
   },
   _sendCtrl: function(peerName, msgObj) {
     msgObj.protocol = LEDGERLOOPS_PROTOCOL_VERSION;
-    return this._hubbie.send(peerName, JSON.stringfify(msgObj));
+    return this._hubbie.send(peerName, JSON.stringify(msgObj));
   },
 
   // public:

@@ -29,6 +29,7 @@ Loops.prototype = {
   },
   handleControlMessage: function (peerName, msgObj) {
     if (msgObj.msgType === 'PROBES') {
+      console.log('handling probes', peerName, msgObj);
       if (typeof this._probesRcvd[peerName] === 'undefined') {
         this._probesRcvd[peerName] = {
           cwise: {},
@@ -50,7 +51,7 @@ Loops.prototype = {
       };
     }
     if (typeof this._probesRcvd[from] === 'undefined' || typeof this._probesRcvd[from][direction].length === 0) {
-      this._probesSent[to][direction][null] = false;
+      this._probesSent[to][direction]['null'] = false;
     } else {
       for (let routeId in this._probesRcvd[from][direction]) {
         this._probesSent[to][direction][routeId] = false;
@@ -67,7 +68,13 @@ Loops.prototype = {
     }
     ladder.sort((a, b) => balances[a].current - balances[b].current);
     for (let i = 0; i < ladder.length; i++) {
+      if (i === 'bank') {
+        continue;
+      }
       for (let j = i + 1; j < ladder.length; j++) {
+        if (j === 'bank') {
+          continue;
+        }
         this._considerPair(ladder[i], ladder[j], 'cwise');
         this._considerPair(ladder[j], ladder[i], 'fwise');
       }
@@ -84,12 +91,13 @@ Loops.prototype = {
         for (let routeId in this._probesSent[peerName][direction]) {
           if (!this._probesSent[peerName][direction][routeId]) {
             this._probesSent[peerName][direction][routeId] = true;
-            msgObj[direction].push(routeId || randomBytes(8).toString('hex'));
+            msgObj[direction].push(routeId === 'null' ? randomBytes(8).toString('hex') : routeId);
           }
         }
       });
+      console.log('sending probes', peerName, msgObj);
+      this._agent._sendCtrl(peerName, msgObj);
     }
-    this._agent._sendCtrl(peerName, msgObj);
   }
 };
 
