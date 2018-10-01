@@ -1,7 +1,10 @@
 var sha256 = require('./hashlocks').sha256;
+var randomBytes = require('randombytes');
 
 function Loops(agent) {
-  this.agent = agent;
+  this._agent = agent;
+  this._probesSent = {};
+  this._probesRcvd = {};
 }
 
 Loops.prototype = {
@@ -24,8 +27,69 @@ Loops.prototype = {
       commit: false
     });
   },
-  handleControlMessage: function () {
-    // not implemented yet
+  handleControlMessage: function (peerName, msgObj) {
+    if (msgObj.msgType === 'PROBES') {
+      if (typeof this._probesRcvd[peerName] === 'undefined') {
+        this._probesRcvd[peerName] = {
+          cwise: {},
+          fwise: {}
+        };
+      }
+      ['cwise', 'fwise'].map(direction => {
+        msgObj[direction].map(routeId => {
+          this._probesRcvd[peerName][direction][routeId] = true;
+        };
+      }
+    }
+  }
+  _considerPair: function (from, to, direction) {
+    if (typeof this._probesSent[to] === 'undefined') {
+      this._probesSent[to] = {
+        cwise: {},
+        fwise: {}
+      };
+    }
+    if (typeof this._probesRcvd[from] === 'undefined' || typeof this._probesRcvd[from][direction].length === 0) {
+      this._probesSent[to][direction][null] = false;
+    } else {
+      for (let routeId in this._probesRcvd[from][direction]) {
+        this._probesSent[to][direction][routeId] = false;
+      }
+    }
+  },
+  forwardProbes: function () {
+    // a cwise probe should be forwarded to peers whose balance is lower
+    // an fwise probe should be forwarded to peers whose balance is higher
+    const balances = this._agent.getBalances();
+    let ladder = [];
+    for (let peerName in balances) {
+      ladder.push(peerName);
+    }
+    ladder.sort((a, b) => balances[a].current - balances[b].current);
+    for (let i = 0; i < ladder.length; i++) {
+      for (let j = i + 1; j < ladder.length; j++) {
+        this._considerPair(ladder[i], ladder[j], 'cwise');
+        this._considerPair(ladder[j], ladder[i], 'fwise');
+      }
+    }
+  },
+  sendProbes: function () {
+    for (let peerName in this._probesSent) {
+      let msgObj = {
+        msgType: 'PROBES',
+        cwise: [],
+        fwise: []
+      };
+      ['cwise', 'fwise'].map(direction => {
+        for (let routeId in this._probesSent[peerName][direction]) {
+          if (!this._probesSent[peerName][direction][routeId]) {
+            this._probesSent[peerName][direction][routeId] = true;
+            msgObj[direction].push(routeId || randomBytes(8).toString('hex'));
+          }
+        }
+      });
+    }
+    this._agent._sendCtrl(peerName, msgObj);
   }
 };
 
