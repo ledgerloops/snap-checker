@@ -57,8 +57,9 @@ Loops.prototype = {
       for (let routeId in this._probesRcvd[from][direction]) {
         if (this._probesSent[to][direction][routeId]) {
           console.log('LOOP FOUND!');
+        } else {
+          this._probesSent[to][direction][routeId] = false;
         }
-        this._probesSent[to][direction][routeId] = false;
       }
     }
   },
@@ -72,11 +73,11 @@ Loops.prototype = {
     }
     ladder.sort((a, b) => balances[a].current - balances[b].current);
     for (let i = 0; i < ladder.length; i++) {
-      if (i === 'bank') {
+      if (ladder[i] === 'bank') {
         continue;
       }
       for (let j = i + 1; j < ladder.length; j++) {
-        if (j === 'bank') {
+        if (ladder[j] === 'bank') {
           continue;
         }
         this._considerPair(ladder[i], ladder[j], 'cwise');
@@ -93,9 +94,12 @@ Loops.prototype = {
       };
       ['cwise', 'fwise'].map(direction => {
         for (let routeId in this._probesSent[peerName][direction]) {
-          if (!this._probesSent[peerName][direction][routeId]) {
+          if (routeId === 'null') {
+            delete this._probesSent[peerName][direction][routeId];
+            msgObj[direction].push(randomBytes(8).toString('hex'));
+          } else if (!this._probesSent[peerName][direction][routeId]) {
             this._probesSent[peerName][direction][routeId] = true;
-            msgObj[direction].push(routeId === 'null' ? randomBytes(8).toString('hex') : routeId);
+            msgObj[direction].push(routeId);
           }
         }
       });

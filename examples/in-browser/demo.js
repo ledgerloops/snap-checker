@@ -120,10 +120,31 @@ var initialAgents = ['Mia', 'Vincent', 'Marsellus'];
 setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1), 0);
 setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 5), 100);
 setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1), 200);
-setInterval(() => {
+setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
   displayAgents();
 }, 1000);
+setTimeout(() => {
+  for (let agentName in agents) {
+    agents[agentName]._loops.forwardProbes();
+    agents[agentName]._loops.sendProbes();
+  }
+  displayAgents();
+}, 2000);
+setTimeout(() => {
+  for (let agentName in agents) {
+    agents[agentName]._loops.forwardProbes();
+    agents[agentName]._loops.sendProbes();
+  }
+  displayAgents();
+}, 3000);
+setTimeout(() => {
+  for (let agentName in agents) {
+    agents[agentName]._loops.forwardProbes();
+    agents[agentName]._loops.sendProbes();
+  }
+  displayAgents();
+}, 4000);
