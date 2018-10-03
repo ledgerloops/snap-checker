@@ -29,18 +29,24 @@ function displayAgents() {
     for (let neighbor in balances) {
       html += `<li>${neighbor}: ${balances[neighbor].current} +(${balances[neighbor].payable}) -(${balances[neighbor].receivable})</li>`;
     }
-    html += '</ul><h2>Transactions:</h2><ul>';
+    html += '</ul><h2>Committed Transactions:</h2><ul>';
     const transactions = agents[nick].getTransactions();
     for (let k in transactions.committed) {
       const entry = transactions.committed[k];
-      html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.amount}</strong></li>`;
+      html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.amount} (${(entry.routeId + ' : ' + entry.condition).substring(0,50)})</strong></li>`;
     }
+    html += '</ul><h2>Pending Transactions:</h2><ul>';
     for (let k in transactions.pending) {
       const entry = transactions.pending[k];
       html += `<li>(entry ${k}: ${entry.msgType} ${entry.amount})</li>`;
     }
     html += `</ul>`;
   }
+  html += '<h2>Message Log:</h2><ul>';
+  LedgerLoops.msgLog.map(msg => {
+    html += `<li>${JSON.stringify(msg)}</li>`;
+  });
+  html += `</ul>`;
   document.getElementById('data').innerHTML = html;
 }
 
@@ -117,9 +123,9 @@ document.getElementById('send-5').onclick = function() {
 };
 
 var initialAgents = ['Mia', 'Vincent', 'Marsellus'];
-setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1), 0);
-setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 5), 100);
-setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1), 200);
+setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1), 0);   // Mia sends 1 to Vincent
+setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 1), 100); // Vincent sends 1 to Marsellus
+setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1), 200); // Marsellus sends 1 to Mia`
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();

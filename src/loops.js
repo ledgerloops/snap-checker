@@ -27,10 +27,19 @@ Loops.prototype = {
     }
     this._probesSent[peerName][direction][routeId] = value;
   },
+  _beneficial: function (from, to, amount) {
+    const balances = this._agent.getBalances();
+    const minBalanceDiff = + balances[from].current
+    - balances[from].payable
+    - balances[to].current
+    - balances[to].receivable;
+    console.log('comparing', minBalanceDiff, '2*', amount);
+    return (minBalanceDiff > 2 * amount);
+  },
   getResponse: function (peerName, msgObj) {
     console.log('getResponse', peerName, msgObj);
     if (msgObj.msgType === 'ADD') {
-      const routeId = randomBytes(8).toString('hex');
+      const routeId = this._agent._myName + '-' + randomBytes(8).toString('hex');
       console.log('starting probe after ACK to', peerName, routeId);
       this._setSent(peerName, 'cwise', routeId, false);
       this._setRcvd(peerName, 'fwise', routeId, true);
@@ -54,9 +63,9 @@ Loops.prototype = {
         });
       }
       for (let fwdPeerName in this._probesRcvd) {
-        if (this._probesRcvd[fwdPeerName].fwise[msgObj.routeId]) {
+        if (this._probesRcvd[fwdPeerName].fwise[msgObj.routeId] && this._beneficial(peerName, fwdPeerName, msgObj.amount)) {
           console.log('forwarding from', peerName, 'to', fwdPeerName);
-          this._agent._propose(fwdPeerName, msgObj.amount, msgObj.condition, msgObj.routeId).then((result) => {
+          return this._agent._propose(fwdPeerName, msgObj.amount, msgObj.condition, msgObj.routeId).then((result) => {
             console.log('passing back fulfill', peerName, fwdPeerName, result);
             return {
               msgObj: {
@@ -76,7 +85,6 @@ Loops.prototype = {
               commit: false
             };
           });
-          break;
         }
       }
       return Promise.resolve({
@@ -119,7 +127,7 @@ Loops.prototype = {
           const preimage = randomBytes(32);
           const hashHex = sha256(preimage).toString('hex');
           this._preimages[hashHex] = preimage;
-          this._agent._propose(to, balanceDiff, hashHex, routeId).then(preimage => {
+          this._agent._propose(to, balanceDiff / 2, hashHex, routeId).then(preimage => {
             console.log('that worked!', routeId);
           }, (err) => {
             console.log('that did not work!', routeId, err.message);
@@ -174,8 +182,10 @@ Loops.prototype = {
           }
         }
       });
-      console.log('sending probes', peerName, msgObj);
-      this._agent._sendCtrl(peerName, msgObj);
+      if (msgObj.cwise.length || msgObj.fwise.length) {
+        console.log(`sending probes from ${this._agent._myName} to ${peerName}`, msgObj);
+        this._agent._sendCtrl(peerName, msgObj);
+      }
     }
   }
 };

@@ -1,4 +1,5 @@
-function Ledger (unit) {
+function Ledger (unit, myDebugName) {
+  this._myDebugName = myDebugName;
   this._unit = unit
   this._balance = {};
   this._committed = {}
@@ -31,7 +32,10 @@ Ledger.prototype = {
   },
   addBalance: function (party, account, amount) {
     console.log('addBalance', { party, account, amount });
- 
+    console.log('balances before add', JSON.stringify(this._balance));
+    if (typeof amount !== 'number') {
+      panic();
+    } 
     if (!this._balance[party]) {
       this._balance[party] = {
         current: 0,
@@ -39,7 +43,26 @@ Ledger.prototype = {
         payable: 0
       };
     }
+    if (typeof this._balance[party].current !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].receivable !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].payable !== 'number') {
+      panic();
+    } 
     this._balance[party][account] += amount;
+    if (typeof this._balance[party].current !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].receivable !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].payable !== 'number') {
+      panic();
+    } 
+    console.log('balances after add', JSON.stringify(this._balance));
   },
   getBalances: function () {
     return this._balance;
@@ -79,7 +102,7 @@ Ledger.prototype = {
       console.log('this was a resend');
       return false;
     }
-    console.log(`Bank marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, msgObj);
+    console.log(`{${this._myDebugName} marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, msgObj);
     this.addBalance(proposer, 'payable', msgObj.amount);
     this.addBalance(beneficiary, 'receivable', msgObj.amount);
     this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`] = msgObj
@@ -87,7 +110,7 @@ Ledger.prototype = {
     return true;
   },
   resolvePending: function (peerName, orig, outgoing, commit) {
-    console.log(`Bank resolves-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, orig, { commit });
+    console.log(`${this._myDebugName} resolves-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, orig, { commit });
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
     this.addBalance(proposer, 'payable', -orig.amount);

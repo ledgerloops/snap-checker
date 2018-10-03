@@ -9,6 +9,8 @@ const UNIT_OF_VALUE = 'UCR';
 const INITIAL_RESEND_DELAY = 100;
 const RESEND_INTERVAL_BACKOFF = 1.5;
 
+let msgLog = [];
+
 function Agent (myName, mySecret, credsHandler) {
   if (!credsHandler) {
     credsHandler = () => true;
@@ -16,7 +18,7 @@ function Agent (myName, mySecret, credsHandler) {
   this._myName = myName
   this._mySecret = mySecret
   this._hubbie = new Hubbie();
-  this._ledger = new Ledger(UNIT_OF_VALUE);
+  this._ledger = new Ledger(UNIT_OF_VALUE, myName);
   this._loops = new Loops(this);
   this._pendingOutgoingProposals = {};
   this._hubbie.listen({ myName: myName });
@@ -37,13 +39,14 @@ function Agent (myName, mySecret, credsHandler) {
       console.error('msg not JSON', peerName, msg);
       return;
     }
+    msgLog.push([peerName + ' -> ' + myName, msgObj]);
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
         if (this._ledger.markAsPending(peerName, msgObj, false)) {
           this._loops.getResponse(peerName, msgObj).then((response) => {
             this._hubbie.send(peerName, JSON.stringify(response.msgObj));
-  
+            console.log('resolvePending from src/index', JSON.stringify(msgObj)); 
             // resolvePending: function (peerName, orig, outgoing, commit) {
             this._ledger.resolvePending(peerName, msgObj, false, response.commit);
           });
@@ -80,8 +83,13 @@ function Agent (myName, mySecret, credsHandler) {
         break;
       }
       case 'REJECT': {
+        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
+          console.error('REJECT for unknown msg', this._myName, peerName + '-' + msgObj.msgId, Object.keys(this._pendingOutgoingProposals));
+          return;
+        }
+        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
         // resolvePending: function (peerName, orig, outgoing, commit) {
-        this._ledger.resolvePending(peerName, msgObj, true, false);
+        this._ledger.resolvePending(peerName, orig, true, false);
         const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
         reject(new Error(msgObj.reason));
@@ -103,7 +111,7 @@ Agent.prototype = {
     const promise = new Promise ((resolve, reject) => {
       this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] = { resolve, reject, msgObj };
     });
-    console.log('proposing', peerName + '-' + msgObj.msgId);
+    console.log(this._myName, 'proposing', peerName + '-' + msgObj.msgId);
     let resendDelay = INITIAL_RESEND_DELAY
     const sendAndRetry = () => {
       if (!this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId]) {
@@ -152,5 +160,6 @@ Agent.prototype = {
 };
 
 module.exports = {
-  Agent
+  Agent,
+  msgLog
 }
