@@ -72,14 +72,19 @@ Ledger.prototype = {
     }
     return list.sort((a, b) => a[1] - b[1]); // highest first
   },
-  markAsPending: function (peerName, msg, outgoing) {
-    console.log(`Bank marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, msg);
+  markAsPending: function (peerName, msgObj, outgoing) {
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
-    this.addBalance(proposer, 'payable', msg.amount);
-    this.addBalance(beneficiary, 'receivable', msg.amount);
-    this._pendingMsg[`${proposer}-${beneficiary}-${msg.msgId}`] = msg
-    this._pendingMsg[`${proposer}-${beneficiary}-${msg.msgId}`].date = new Date().getTime();
+    if (this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`]) {
+      console.log('this was a resend');
+      return false;
+    }
+    console.log(`Bank marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, msgObj);
+    this.addBalance(proposer, 'payable', msgObj.amount);
+    this.addBalance(beneficiary, 'receivable', msgObj.amount);
+    this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`] = msgObj
+    this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`].date = new Date().getTime();
+    return true;
   },
   resolvePending: function (peerName, orig, outgoing, commit) {
     console.log(`Bank resolves-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, orig, { commit });

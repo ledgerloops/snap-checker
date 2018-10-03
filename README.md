@@ -72,6 +72,7 @@ Messages and their fields when on the wire:
   * beneficiary: 'you' or 'me'
   * amount: integer
   * unit: 'UCR'
+  * routeId: String (from probes)
   * note: String (optional)
 
 * FULFILL

@@ -40,22 +40,28 @@ function Agent (myName, mySecret, credsHandler) {
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
-        this._ledger.markAsPending(peerName, msgObj, false);
-        return this._loops.getResponse(peerName, msgObj).then((response) => {
-          this._hubbie.send(peerName, JSON.stringify(response.msgObj));
-
-          // resolvePending: function (peerName, orig, outgoing, commit) {
-          return this._ledger.resolvePending(peerName, msgObj, false, response.commit);
-        });
+        if (this._ledger.markAsPending(peerName, msgObj, false)) {
+          this._loops.getResponse(peerName, msgObj).then((response) => {
+            this._hubbie.send(peerName, JSON.stringify(response.msgObj));
+  
+            // resolvePending: function (peerName, orig, outgoing, commit) {
+            this._ledger.resolvePending(peerName, msgObj, false, response.commit);
+          });
+        }
         break;
       }
       case 'FULFILL': {
-        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
-        if (!orig) {
-          console.log('unexpected fulfill!', msg, orig);
+        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
+          console.error('fulfill for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals));
           return;
         }
-        if (!verifyHash(msg.preimage, orig.condition)) {
+        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
+        if (!orig) {
+          console.log('unexpected fulfill!', msgObj, orig);
+          return;
+        }
+        console.log('verifying hash!', msgObj);
+        if (!verifyHash(msgObj.preimage, orig.condition)) {
           console.log('no hash match!', msg, orig);
           return;
         } else {
@@ -70,7 +76,7 @@ function Agent (myName, mySecret, credsHandler) {
         this._ledger.resolvePending(peerName, orig, true, true);
         const resolve = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].resolve;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
-        resolve(msg.preimage);
+        resolve(msgObj.preimage);
         break;
       }
       case 'REJECT': {
@@ -78,7 +84,7 @@ function Agent (myName, mySecret, credsHandler) {
         this._ledger.resolvePending(peerName, msgObj, true, false);
         const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
-        reject(new Error(msg.reason));
+        reject(new Error(msgObj.reason));
         break;
       }
       default: {
