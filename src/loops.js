@@ -127,7 +127,7 @@ Loops.prototype = {
           const preimage = randomBytes(32);
           const hashHex = sha256(preimage).toString('hex');
           this._preimages[hashHex] = preimage;
-          this._agent._propose(to, balanceDiff / 2, hashHex, routeId).then(preimage => {
+          this._agent._propose(to, Math.floor(balanceDiff / 10), hashHex, routeId).then(preimage => {
             console.log('that worked!', routeId);
           }, (err) => {
             console.log('that did not work!', routeId, err.message);

@@ -123,9 +123,9 @@ document.getElementById('send-5').onclick = function() {
 };
 
 var initialAgents = ['Mia', 'Vincent', 'Marsellus'];
-setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 1), 0);   // Mia sends 1 to Vincent
-setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 1), 100); // Vincent sends 1 to Marsellus
-setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 1), 200); // Marsellus sends 1 to Mia`
+setTimeout(() => sendAdd(initialAgents[0], initialAgents[1], 100), 0);   // Mia sends 100 to Vincent
+setTimeout(() => sendAdd(initialAgents[1], initialAgents[2], 100), 100); // Vincent sends 100 to Marsellus
+setTimeout(() => sendAdd(initialAgents[2], initialAgents[0], 100), 200); // Marsellus sends 100 to Mia`
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
