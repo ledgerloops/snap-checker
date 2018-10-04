@@ -1,10 +1,9 @@
 function Ledger (unit, myDebugName) {
   this._myDebugName = myDebugName;
-  this._unit = unit
+  this._unit = unit;
   this._balance = {};
-  this._committed = {}
-  this._pendingMsg = {}
-  this.myNextId = {}
+  this._msgLog = {};
+  this.myNextId = {};
 }
 
 Ledger.prototype = {
@@ -32,7 +31,6 @@ Ledger.prototype = {
   },
   addBalance: function (party, account, amount) {
     console.log('addBalance', { party, account, amount });
-    console.log('balances before add', JSON.stringify(this._balance));
     if (typeof amount !== 'number') {
       panic();
     } 
@@ -43,35 +41,13 @@ Ledger.prototype = {
         payable: 0
       };
     }
-    if (typeof this._balance[party].current !== 'number') {
-      panic();
-    } 
-    if (typeof this._balance[party].receivable !== 'number') {
-      panic();
-    } 
-    if (typeof this._balance[party].payable !== 'number') {
-      panic();
-    } 
     this._balance[party][account] += amount;
-    if (typeof this._balance[party].current !== 'number') {
-      panic();
-    } 
-    if (typeof this._balance[party].receivable !== 'number') {
-      panic();
-    } 
-    if (typeof this._balance[party].payable !== 'number') {
-      panic();
-    } 
-    console.log('balances after add', JSON.stringify(this._balance));
   },
   getBalances: function () {
     return this._balance;
   },
   getTransactions: function () {
-    return {
-      committed: this._committed,
-      pending: this._pending
-    };
+    return this._msgLog;
   },
   getLowerPeers: function (limit) {
     let list = [];
@@ -95,42 +71,86 @@ Ledger.prototype = {
     }
     return list.sort((a, b) => a[1] - b[1]); // highest first
   },
-  markAsPending: function (peerName, msgObj, outgoing) {
-    const proposer = (outgoing ? 'bank' : peerName);
-    const beneficiary = (outgoing ? peerName : 'bank');
-    if (this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`]) {
-      console.log('this was a resend');
-      return false;
+  logMsg: function (peerName, msgObj, outgoing) {
+    const sender = (outgoing ? 'bank' : peerName);
+    const receiver = (outgoing ? peerName : 'bank');
+    let proposer;
+    let beneficiary;
+    let response;
+    switch (msgObj.msgType) {
+      case 'ADD':
+      case 'COND':
+        proposer = sender;
+        beneficiary = receiver;
+        response = false;
+        break;
+      case 'ACK':
+      case 'FULFILL':
+      case 'REJECT':
+        proposer = sender;
+        beneficiary = receiver;
+        response = true;
+        break;
+      default:
+        throw new Error('unknown message type');
+    };
+    if (!this._msgLog[`${proposer}-${beneficiary}`]) {
+      this._msgLog[`${proposer}-${beneficiary}`] = {};
     }
-    console.log(`{${this._myDebugName} marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, msgObj);
-    this.addBalance(proposer, 'payable', msgObj.amount);
-    this.addBalance(beneficiary, 'receivable', msgObj.amount);
-    this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`] = msgObj
-    this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`].date = new Date().getTime();
-    return true;
-  },
-  resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
-    console.log(`${this._myDebugName} resolves-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, orig, { commit });
-    const proposer = (outgoing ? 'bank' : peerName);
-    const beneficiary = (outgoing ? peerName : 'bank');
-    this.addBalance(proposer, 'payable', -orig.amount);
-    this.addBalance(beneficiary, 'receivable', -orig.amount);
-    if (commit) {
-      this.addBalance(proposer, 'current', -orig.amount);
-      this.addBalance(beneficiary, 'current', orig.amount);
+    if (!this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId]) {
+      if (response) {
+        throw new Error('unexpected response!');
+      }
+      this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId] = {
+        messages: [],
+        'status': 'new',
+      };
+    }
+    let entry = this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId];
+    entry.messages.push(msgObj);
+    if (response) { // ACK, FULFILL, REJECT
+      if (entry['status'] === 'pending') {
+        if (msgObj.msgType === 'REJECT') {
+          entry['status'] = 'rejected';
+          this.addBalance(proposer, 'payable', -entry.request.amount);
+          this.addBalance(beneficiary, 'receivable', -entry.request.amount);
+          entry.response = msgObj;
+          entry.reject(new Error(msgObj.reason));
+        } else {
+          if (entry.request.condition && !verifyHash(msgObj.preimage, entry.request.condition)) {
+            console.log('hashlock error! not accepting transaction (yet)');
+          } else {
+            this.addBalance(proposer, 'payable', -entry.request.amount);
+            this.addBalance(proposer, 'current', -entry.request.amount);
 
-      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`] = this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`]
-      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`].date = new Date().getTime();
-      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`].responseMsgObj = responseMsgObj;
-     
+            this.addBalance(beneficiary, 'receivable', -entry.request.amount);
+            this.addBalance(beneficiary, 'current', entry.request.amount);
+            entry['status'] = 'accepted';
+            entry.response = msgObj;
+            entry.resolve(msgObj.preimage);
+          }
+        }
+      }
+    } else { // ADD, COND
+      if (entry['status'] === 'new') {
+        entry['status'] = 'pending';
+        entry.request = msgObj;
+        const promise = new Promise((resolve, reject) => {
+          entry.resolve = resolve;
+          entry.reject = reject;
+        });
+        this.addBalance(proposer, 'payable', entry.request.amount);
+        this.addBalance(beneficiary, 'receivable', entry.request.amount);
+        return promise;
+      }
     }
-    delete this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`];
+    return Promise.resolve();
   },
-  getRepeatResponse: function (peerName, msgObj, outgoing) {
+  getResponse: function (peerName, msgObj, outgoing) {
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
-    if (typeof this._committed[`${proposer}-${beneficiary}-${msgObj.msgId}`] !== 'undefined') {
-      return this._committed[`${proposer}-${beneficiary}-${msgObj.msgId}`].responseMsgObj;
+    if (this._msgLog[`${proposer}-${beneficiary}`] && this._msgLog[`${proposer}-${beneficiary}`][msgId]) {
+      return this._msgLog[`${proposer}-${beneficiary}`][msgId].response;
     }
   }
 }
