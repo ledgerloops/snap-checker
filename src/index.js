@@ -1,4 +1,3 @@
-var verifyHash = require('./hashlocks').verifyHash;
 var Hubbie = require('hubbie');
 var Ledger = require('./ledger');
 var Loops = require('./loops');
@@ -37,16 +36,17 @@ function Agent (myName, mySecret, credsHandler) {
       console.error('msg not JSON', peerName, msg);
       return;
     }
-    this._ledger.logMsg(peerName, msgObj, false);
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
+        this._ledger.logMsg(peerName, msgObj, false);
         this._handleRequestMsg(peerName, msgObj);
         break;
       }
       case 'ACK':
       case 'FULFILL':
       case 'REJECT': {
+        this._ledger.logMsg(peerName, msgObj, false);
         this._handleResponseMsg(peerName, msgObj);
         break;
       }
@@ -82,9 +82,6 @@ Agent.prototype = {
     let resendDelay = INITIAL_RESEND_DELAY
     let resendTimer;
     const sendAndRetry = () => {
-      if (!this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId]) {
-        return;
-      }
       this._hubbie.send(peerName, JSON.stringify(msgObj), true);
       resendDelay *= RESEND_INTERVAL_BACKOFF;
       resendTimer = setTimeout(sendAndRetry, resendDelay);

@@ -1,3 +1,5 @@
+var verifyHash = require('./hashlocks').verifyHash;
+
 function Ledger (unit, myDebugName) {
   this._myDebugName = myDebugName;
   this._unit = unit;
@@ -87,11 +89,12 @@ Ledger.prototype = {
       case 'ACK':
       case 'FULFILL':
       case 'REJECT':
-        proposer = sender;
-        beneficiary = receiver;
+        proposer = receiver;
+        beneficiary = sender;
         response = true;
         break;
       default:
+        console.log(msgObj);
         throw new Error('unknown message type');
     };
     if (!this._msgLog[`${proposer}-${beneficiary}`]) {
@@ -99,6 +102,7 @@ Ledger.prototype = {
     }
     if (!this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId]) {
       if (response) {
+        console.log(this._msgLog, proposer, beneficiary, msgObj);
         throw new Error('unexpected response!');
       }
       this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId] = {
@@ -149,8 +153,8 @@ Ledger.prototype = {
   getResponse: function (peerName, msgObj, outgoing) {
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
-    if (this._msgLog[`${proposer}-${beneficiary}`] && this._msgLog[`${proposer}-${beneficiary}`][msgId]) {
-      return this._msgLog[`${proposer}-${beneficiary}`][msgId].response;
+    if (this._msgLog[`${proposer}-${beneficiary}`] && this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId]) {
+      return this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId].response;
     }
   }
 }
