@@ -6,7 +6,7 @@ var Loops = require('./loops');
 const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
 const UNIT_OF_VALUE = 'UCR';
 
-const INITIAL_RESEND_DELAY = 10000;
+const INITIAL_RESEND_DELAY = 100;
 const RESEND_INTERVAL_BACKOFF = 1.5;
 
 let msgLog = [];
@@ -43,26 +43,30 @@ function Agent (myName, mySecret, credsHandler) {
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
-        if (this._ledger.markAsPending(peerName, msgObj, false)) {
+        const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, false);
+        if (repeatResponse) {
+          this._hubbie.send(peerName, JSON.stringify(repeatResponse));
+        } else if (this._ledger.markAsPending(peerName, msgObj, false)) {
           this._loops.getResponse(peerName, msgObj).then((response) => {
             this._hubbie.send(peerName, JSON.stringify(response.msgObj));
             console.log('resolvePending from src/index', JSON.stringify(msgObj)); 
-            // resolvePending: function (peerName, orig, outgoing, commit) {
-            this._ledger.resolvePending(peerName, msgObj, false, response.commit);
+            // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
+            this._ledger.resolvePending(peerName, msgObj, false, response.commit, response.msgObj);
           });
         }
         break;
       }
       case 'FULFILL': {
         if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
-          console.error('fulfill for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals));
+          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
+          if (repeatResponse) {
+            console.log('ignoring resend of fulfill');
+          } else {
+            console.error('fulfill for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
+          }
           return;
         }
         const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
-        if (!orig) {
-          console.log('unexpected fulfill!', msgObj, orig);
-          return;
-        }
         console.log('verifying hash!', msgObj);
         if (!verifyHash(msgObj.preimage, orig.condition)) {
           console.log('no hash match!', msg, orig);
@@ -73,10 +77,19 @@ function Agent (myName, mySecret, credsHandler) {
         // fall-through from FULFILL to ACK:
       }
       case 'ACK': {
+        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
+          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
+          if (repeatResponse) {
+            console.log('ignoring resend of ack');
+          } else {
+            console.error('ack for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
+          }
+          return;
+        }
         const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
         console.log('received ACK', { msgObj, orig });
-        // resolvePending: function (peerName, orig, outgoing, commit) {
-        this._ledger.resolvePending(peerName, orig, true, true);
+        // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
+        this._ledger.resolvePending(peerName, orig, true, true, msgObj);
         const resolve = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].resolve;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
         resolve(msgObj.preimage);
@@ -84,12 +97,17 @@ function Agent (myName, mySecret, credsHandler) {
       }
       case 'REJECT': {
         if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
-          console.error('REJECT for unknown msg', this._myName, peerName + '-' + msgObj.msgId, Object.keys(this._pendingOutgoingProposals));
-          return;
+          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
+          if (repeatResponse) {
+            console.log('ignoring resend of reject');
+          } else {
+            console.error('REJECT for unknown msg', this._myName, peerName + '-' + msgObj.msgId, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
+            return;
+          }
         }
         const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
-        // resolvePending: function (peerName, orig, outgoing, commit) {
-        this._ledger.resolvePending(peerName, orig, true, false);
+        // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
+        this._ledger.resolvePending(peerName, orig, true, false, msgObj);
         const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
         delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
         reject(new Error(msgObj.reason));

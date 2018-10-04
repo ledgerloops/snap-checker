@@ -109,7 +109,7 @@ Ledger.prototype = {
     this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`].date = new Date().getTime();
     return true;
   },
-  resolvePending: function (peerName, orig, outgoing, commit) {
+  resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
     console.log(`${this._myDebugName} resolves-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, orig, { commit });
     const proposer = (outgoing ? 'bank' : peerName);
     const beneficiary = (outgoing ? peerName : 'bank');
@@ -121,8 +121,17 @@ Ledger.prototype = {
 
       this._committed[`${proposer}-${beneficiary}-${orig.msgId}`] = this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`]
       this._committed[`${proposer}-${beneficiary}-${orig.msgId}`].date = new Date().getTime();
+      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`].responseMsgObj = responseMsgObj;
+     
     }
     delete this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`];
+  },
+  getRepeatResponse: function (peerName, msgObj, outgoing) {
+    const proposer = (outgoing ? 'bank' : peerName);
+    const beneficiary = (outgoing ? peerName : 'bank');
+    if (typeof this._committed[`${proposer}-${beneficiary}-${msgObj.msgId}`] !== 'undefined') {
+      return this._committed[`${proposer}-${beneficiary}-${msgObj.msgId}`].responseMsgObj;
+    }
   }
 }
 
