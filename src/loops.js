@@ -68,7 +68,7 @@ Loops.prototype = {
             };
           }, (err) => {
             console.error(err.message);
-            panic();
+            // panic();
             return {
               msgId: msgObj.msgId,
               msgType: 'REJECT',

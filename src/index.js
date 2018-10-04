@@ -59,6 +59,7 @@ function Agent (myName, mySecret, credsHandler) {
 
 Agent.prototype = {
   _handleRequestMsg: function (peerName, msgObj) {
+    console.log('received request', { msgObj, peerName});
     const repeatResponse = this._ledger.getResponse(peerName, msgObj, false);
     if (repeatResponse) {
       this._hubbie.send(peerName, JSON.stringify(repeatResponse));
@@ -66,6 +67,15 @@ Agent.prototype = {
       this._loops.getResponse(peerName, msgObj).then((responseMsgObj) => {
         this._hubbie.send(peerName, JSON.stringify(responseMsgObj));
         this._ledger.logMsg(peerName, responseMsgObj, true);
+      }).catch((err) => {
+        const rejection = {
+          protocol: LEDGERLOOPS_PROTOCOL_VERSION,
+          msgType: 'REJECT',
+          msgId: msgObj.msgId,
+          reason: err.message
+        };
+        this._hubbie.send(peerName, JSON.stringify(rejection));
+        this._ledger.logMsg(peerName, rejection, true);
       });
     }
   },
@@ -90,6 +100,9 @@ Agent.prototype = {
     return promise.then((preimage) => {
       clearTimeout(resendTimer);
       return preimage;
+    }).catch((err) => {
+      clearTimeout(resendTimer);
+      throw err;
     });
   },
   _sendCtrl: function(peerName, msgObj) {
