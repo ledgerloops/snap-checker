@@ -76,6 +76,8 @@ Loops.prototype = {
               commit: true
             };
           }, (err) => {
+            console.error(err.message);
+            panic();
             return {
               msgObj: {
                 msgId: msgObj.msgId,

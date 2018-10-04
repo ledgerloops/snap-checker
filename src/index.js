@@ -6,7 +6,7 @@ var Loops = require('./loops');
 const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
 const UNIT_OF_VALUE = 'UCR';
 
-const INITIAL_RESEND_DELAY = 100;
+const INITIAL_RESEND_DELAY = 10000;
 const RESEND_INTERVAL_BACKOFF = 1.5;
 
 let msgLog = [];
