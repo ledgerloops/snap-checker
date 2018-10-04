@@ -31,21 +31,14 @@ function displayAgents() {
     }
     html += '</ul><h2>Committed Transactions:</h2><ul>';
     const transactions = agents[nick].getTransactions();
-    for (let k in transactions.committed) {
-      const entry = transactions.committed[k];
-      html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.amount} (${(entry.routeId + ' : ' + entry.condition).substring(0,50)})</strong></li>`;
-    }
-    html += '</ul><h2>Pending Transactions:</h2><ul>';
-    for (let k in transactions.pending) {
-      const entry = transactions.pending[k];
-      html += `<li>(entry ${k}: ${entry.msgType} ${entry.amount})</li>`;
+    for (let peerName in transactions) {
+      for (let k in transactions[peerName]) {
+        const entry = transactions[peerName][k].request;
+        html += `<li><strong>Entry ${peerName} ${k}: ${entry.msgType} ${entry.amount} (${(entry.routeId + ' : ' + entry.condition).substring(0,50)})</strong></li>`;
+      }
     }
     html += `</ul>`;
   }
-  html += '<h2>Message Log:</h2><ul>';
-  LedgerLoops.msgLog.map(msg => {
-    html += `<li>${JSON.stringify(msg)}</li>`;
-  });
   html += `</ul>`;
   document.getElementById('data').innerHTML = html;
 }
@@ -131,26 +124,26 @@ setTimeout(() => {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-//  displayAgents();
+  displayAgents();
 }, 1000);
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-//  displayAgents();
+  displayAgents();
 }, 2000);
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-//  displayAgents();
+  displayAgents();
 }, 3000);
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-//  displayAgents();
+  displayAgents();
 }, 4000);
