@@ -1,7 +1,15 @@
-var PeerHandler = require('./peerhandler')
-var Hubbie = require('hubbie')
+var verifyHash = require('./hashlocks').verifyHash;
+var Hubbie = require('hubbie');
+var Ledger = require('./ledger');
+var Loops = require('./loops');
 
 const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
+const UNIT_OF_VALUE = 'UCR';
+
+const INITIAL_RESEND_DELAY = 100;
+const RESEND_INTERVAL_BACKOFF = 1.5;
+
+let msgLog = [];
 
 function Agent (myName, mySecret, credsHandler) {
   if (!credsHandler) {
@@ -9,11 +17,12 @@ function Agent (myName, mySecret, credsHandler) {
   }
   this._myName = myName
   this._mySecret = mySecret
-  this._peerHandlers = {}
-  this._preimages = {}
-  this.hubbie = new Hubbie();
-  this.hubbie.listen({ myName: myName });
-  this.hubbie.on('peer', (eventObj) => {
+  this._hubbie = new Hubbie();
+  this._ledger = new Ledger(UNIT_OF_VALUE, myName);
+  this._loops = new Loops(this);
+  this._pendingOutgoingProposals = {};
+  this._hubbie.listen({ myName: myName });
+  this._hubbie.on('peer', (eventObj) => {
     if (eventObj.protocols && eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
       console.error('Client does not support ' + LEDGERLOOPS_PROTOCOL_VERSION, eventObj);
       return false;
@@ -22,10 +31,7 @@ function Agent (myName, mySecret, credsHandler) {
       return LEDGERLOOPS_PROTOCOL_VERSION;
     }
   });
-  this.hubbie.on('message', (peerName, msg) => {
-    if (!this._peerHandlers[peerName]) {
-      this.ensurePeer(peerName);
-    }
+  this._hubbie.on('message', (peerName, msg) => {
     let msgObj;
     try {
       msgObj = JSON.parse(msg);
@@ -33,37 +39,145 @@ function Agent (myName, mySecret, credsHandler) {
       console.error('msg not JSON', peerName, msg);
       return;
     }
-    this._peerHandlers[peerName]._ledger.handleMessage(msgObj, false);
+    msgLog.push([peerName + ' -> ' + myName, msgObj]);
+    switch (msgObj.msgType) {
+      case 'ADD':
+      case 'COND': {
+        const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, false);
+        if (repeatResponse) {
+          this._hubbie.send(peerName, JSON.stringify(repeatResponse));
+        } else if (this._ledger.markAsPending(peerName, msgObj, false)) {
+          this._loops.getResponse(peerName, msgObj).then((response) => {
+            this._hubbie.send(peerName, JSON.stringify(response.msgObj));
+            console.log('resolvePending from src/index', JSON.stringify(msgObj)); 
+            // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
+            this._ledger.resolvePending(peerName, msgObj, false, response.commit, response.msgObj);
+          });
+        }
+        break;
+      }
+      case 'FULFILL': {
+        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
+          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
+          if (repeatResponse) {
+            console.log('ignoring resend of fulfill');
+          } else {
+            console.error('fulfill for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
+          }
+          return;
+        }
+        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
+        console.log('verifying hash!', msgObj);
+        if (!verifyHash(msgObj.preimage, orig.condition)) {
+          console.log('no hash match!', msg, orig);
+          return;
+        } else {
+          console.log('hash match!');
+        }
+        // fall-through from FULFILL to ACK:
+      }
+      case 'ACK': {
+        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
+          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
+          if (repeatResponse) {
+            console.log('ignoring resend of ack');
+          } else {
+            console.error('ack for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
+          }
+          return;
+        }
+        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
+        console.log('received ACK', { msgObj, orig });
+        // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
+        this._ledger.resolvePending(peerName, orig, true, true, msgObj);
+        const resolve = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].resolve;
+        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
+        resolve(msgObj.preimage);
+        break;
+      }
+      case 'REJECT': {
+        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
+          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
+          if (repeatResponse) {
+            console.log('ignoring resend of reject');
+          } else {
+            console.error('REJECT for unknown msg', this._myName, peerName + '-' + msgObj.msgId, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
+            return;
+          }
+        }
+        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
+        // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
+        this._ledger.resolvePending(peerName, orig, true, false, msgObj);
+        const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
+        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
+        reject(new Error(msgObj.reason));
+        break;
+      }
+      default: {
+        this._loops.handleControlMessage(peerName, msgObj);
+      }
+    };
   });
 }
 
 Agent.prototype = {
-  ensurePeer: function (peerName) {
-    if (typeof this._peerHandlers[peerName] === 'undefined') {
-      this._peerHandlers[peerName] = new PeerHandler(peerName, this._myName, 'UCR', this);
-    }
+
+  // private, to be called by Loops handler:
+  _propose: function (peerName, amount, hashHex, routeId) {
+    const msgObj = this._ledger.create(peerName, amount, hashHex, routeId);
+    this._ledger.markAsPending(peerName, msgObj, true);
+    const promise = new Promise ((resolve, reject) => {
+      this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] = { resolve, reject, msgObj };
+    });
+    console.log(this._myName, 'proposing', peerName + '-' + msgObj.msgId);
+    let resendDelay = INITIAL_RESEND_DELAY
+    const sendAndRetry = () => {
+      if (!this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId]) {
+        return;
+      }
+      this._hubbie.send(peerName, JSON.stringify(msgObj), true);
+      resendDelay *= RESEND_INTERVAL_BACKOFF;
+      setTimeout(sendAndRetry, resendDelay);
+    };
+    sendAndRetry();
+    return promise;
   },
+  _sendCtrl: function(peerName, msgObj) {
+    msgObj.protocol = LEDGERLOOPS_PROTOCOL_VERSION;
+    return this._hubbie.send(peerName, JSON.stringify(msgObj));
+  },
+
+  // public:
   addClient: function(options) {
-    this.ensurePeer(options.peerName);
-    return this.hubbie.addClient(Object.assign({
+    return this._hubbie.addClient(Object.assign({
       myName: this._myName,
       mySecret: this._mySecret,
       protocols: [ LEDGERLOOPS_PROTOCOL_VERSION ]
     }, options));
   },
   listen: function (options) {
-    return this.hubbie.listen(options);
+    return this._hubbie.listen(Object.assign({
+      protocolName: LEDGERLOOPS_PROTOCOL_VERSION
+    }, options));
   },
-  create: function (peerName, amount, hashHex, routeId) {
-    this.ensurePeer(peerName);
-    return this._peerHandlers[peerName].create(amount, hashHex, routeId);
+  addTransaction: function (peerName, amount) {
+    return this._propose(peerName, amount);
   },
-  send: function(peerName, msgObj) {
-    this.ensurePeer(peerName);
-    return this._peerHandlers[peerName].send(msgObj);
+  getBalances: function() {
+    return this._ledger.getBalances();
+  },
+  getTransactions: function() {
+    return this._ledger.getTransactions();
+  },
+  payIntoNetwork: function(peerName, value) {
+    return this._loops.payIntoNetwork(peerName, value);
+  },
+  receiveFromNetwork: function(peerName, value) {
+    return this._loops.receiveFromNetwork(peerName, value);
   }
 };
 
 module.exports = {
-  Agent
+  Agent,
+  msgLog
 }

@@ -1,40 +1,21 @@
-const debug = require('./debug')
-var shajs = require('sha.js')
-
-function sha256 (x) {
-  return shajs('sha256').update(x).digest()
-}
-
-function verifyHash (preimageHex, hashHex) {
-  const preimage = Buffer.from(preimageHex, 'hex')
-  const correctHash = sha256(preimage)
-  return Buffer.from(hashHex, 'hex').equals(correctHash)
-}
-
-function Ledger (peerName, myName, unit, handler) {
-  this._peerName = peerName
-  this._myName = myName
+function Ledger (unit, myDebugName) {
+  this._myDebugName = myDebugName;
   this._unit = unit
-  this._currentBalance = {
-    me: 0,
-    you: 0
-  }
-  this._pendingBalance = {
-    [peerName]: 0,
-    [myName]: 0
-  }
+  this._balance = {};
   this._committed = {}
   this._pendingMsg = {}
-  this._handler = handler
-  this.myNextId = 0
+  this.myNextId = {}
 }
 
 Ledger.prototype = {
-  create: function (amount, condition, routeId) {
+  create: function (peerName, amount, condition, routeId) {
+    if (!this.myNextId[peerName]) {
+      this.myNextId[peerName] = 0;
+    }
     if (condition) {
       return {
         msgType: 'COND',
-        msgId: this.myNextId++,
+        msgId: this.myNextId[peerName]++,
         amount,
         unit: this._unit,
         condition,
@@ -43,121 +24,114 @@ Ledger.prototype = {
     } else {
       return {
         msgType: 'ADD',
-        msgId: this.myNextId++,
+        msgId: this.myNextId[peerName]++,
         amount,
         unit: this._unit
       }
     }
   },
-  handleMessage: function (msg, outgoing) {
-    console.log(`${this._myName} handles message ${(outgoing ? 'to' : 'from')} ${this._peerName}`, msg);
-    let proposer
-    if (outgoing) {
-      if (['ADD', 'COND', 'PLEASE-FINALIZE'].indexOf(msg.msgType) !== -1) {
-        proposer = 'me'
-      } else {
-        proposer = 'you'
-      }
-    } else {
-      if (['ADD', 'COND', 'PLEASE-FINALIZE'].indexOf(msg.msgType) !== -1) {
-        proposer = 'you'
-      } else {
-        proposer = 'me'
-      }
-      if (typeof msg !== 'object') {
-        console.error('discarding non-object message from peer', msg)
-        return
-      }
+  addBalance: function (party, account, amount) {
+    console.log('addBalance', { party, account, amount });
+    console.log('balances before add', JSON.stringify(this._balance));
+    if (typeof amount !== 'number') {
+      panic();
+    } 
+    if (!this._balance[party]) {
+      this._balance[party] = {
+        current: 0,
+        receivable: 0,
+        payable: 0
+      };
     }
-    const beneficiary = (proposer == 'me' ? 'you' : 'me')
-    switch (msg.msgType) {
-      case 'ADD': {
-        this._pendingBalance[beneficiary] += msg.amount
-        this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
-        this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
-        if (!outgoing) {
-          this._handler._handleAdd(msg)
-        }
-        break
-      }
-      case 'PLEASE-FINALIZE': {
-        if (!outgoing) {
-          this._handler._handlePleaseFinalize(msg)
-        }
-        break
-      }
-      case 'COND': {
-        this._pendingBalance[beneficiary] += msg.amount
-        this._pendingMsg[`${proposer}-${msg.msgId}`] = msg
-        this._pendingMsg[`${proposer}-${msg.msgId}`].date = new Date().getTime();
-        if (!outgoing) {
-          this._handler._handleCond(msg)
-        }
-        break
-      }
-      case 'ACK': {
-        const orig = this._pendingMsg[`${proposer}-${msg.msgId}`]
-        if (!orig) {
-          debug.log('panic! ACK for non-existing orig', this._pendingMsg, msg)
-          panic() // eslint-disable-line no-undef
-        }
-        this._pendingBalance[beneficiary] -= orig.amount
-        this._currentBalance[beneficiary] += orig.amount
-
-        this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
-        this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
-        delete this._pendingMsg[`${proposer}-${msg.msgId}`]
-        break
-      }
-      case 'FULFILL': {
-        const orig = this._pendingMsg[`${proposer}-${msg.msgId}`]
-        if (!verifyHash(msg.preimage, orig.condition)) {
-          console.log('no hash match!', msg, orig)
-          return
-        } else {
-          console.log('hash match!')
-        }
-        this._pendingBalance[beneficiary] -= orig.amount
-        this._currentBalance[beneficiary] += orig.amount
-
-        this._committed[`${proposer}-${msg.msgId}`] = this._pendingMsg[`${proposer}-${msg.msgId}`]
-        this._committed[`${proposer}-${msg.msgId}`].date = new Date().getTime();
-        delete this._pendingMsg[`${proposer}-${msg.msgId}`]
-        if (!outgoing) {
-          this._handler._handleFulfill(msg)
-        }
-        break
-      }
-      case 'REJECT': {
-        const orig = this._pendingMsg[`${proposer}-${msg.msgId}`]
-        this._pendingBalance[beneficiary] -= orig.amount
-
-        delete this._pendingMsg[`${proposer}-${msg.msgId}`]
-        if (!outgoing) {
-          this._handler._handleReject(msg)
-        }
-        break
-      }
-      case 'PROBES': {
-        if (!outgoing) {
-          if (!Array.isArray(msg.cwise)) {
-            console.error('PROBES message without a cwise array', msg)
-            return
-          }
-          if (!Array.isArray(msg.fwise)) {
-            console.error('PROBES message without an fwise array', msg)
-            return
-          }
-          this._handler._handleProbe(msg)
-        }
-        break
-      }
-      default:
-        console.log('unknown message type!', this._myName, this._peerName, msg)
-    }
+    if (typeof this._balance[party].current !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].receivable !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].payable !== 'number') {
+      panic();
+    } 
+    this._balance[party][account] += amount;
+    if (typeof this._balance[party].current !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].receivable !== 'number') {
+      panic();
+    } 
+    if (typeof this._balance[party].payable !== 'number') {
+      panic();
+    } 
+    console.log('balances after add', JSON.stringify(this._balance));
   },
-  getBalance: function () {
-    return this._currentBalance['me'] - this._currentBalance['you']
+  getBalances: function () {
+    return this._balance;
+  },
+  getTransactions: function () {
+    return {
+      committed: this._committed,
+      pending: this._pending
+    };
+  },
+  getLowerPeers: function (limit) {
+    let list = [];
+    for (let peerName in this._balance) {
+      // imagine all this peer's receivables succeed, and all his payables fail: 
+      const highestBalanceEstimate = this._balance[peerName].current + this._balance[peerName].receivable;
+      if (highestBalanceEstimate < limit) {
+        list.push([peerName, highestBalanceEstimate]);
+      }
+    }
+    return list.sort((a, b) => b[1] - a[1]); // lowest first
+  },
+  getHigherPeers: function (limit) {
+    let list = [];
+    for (let peerName in this._balance) {
+      // imagine all this peer's receivables fail, and all his payables succeed: 
+      const lowestBalanceEstimate = this._balance[peerName].current - this._balance[peerName].payable;
+      if (lowestBalanceEstimate > limit) {
+        list.push([peerName, lowestBalanceEstimate]);
+      }
+    }
+    return list.sort((a, b) => a[1] - b[1]); // highest first
+  },
+  markAsPending: function (peerName, msgObj, outgoing) {
+    const proposer = (outgoing ? 'bank' : peerName);
+    const beneficiary = (outgoing ? peerName : 'bank');
+    if (this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`]) {
+      console.log('this was a resend');
+      return false;
+    }
+    console.log(`{${this._myDebugName} marks-As-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, msgObj);
+    this.addBalance(proposer, 'payable', msgObj.amount);
+    this.addBalance(beneficiary, 'receivable', msgObj.amount);
+    this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`] = msgObj
+    this._pendingMsg[`${proposer}-${beneficiary}-${msgObj.msgId}`].date = new Date().getTime();
+    return true;
+  },
+  resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
+    console.log(`${this._myDebugName} resolves-Pending message ${(outgoing ? 'to' : 'from')} ${peerName}`, orig, { commit });
+    const proposer = (outgoing ? 'bank' : peerName);
+    const beneficiary = (outgoing ? peerName : 'bank');
+    this.addBalance(proposer, 'payable', -orig.amount);
+    this.addBalance(beneficiary, 'receivable', -orig.amount);
+    if (commit) {
+      this.addBalance(proposer, 'current', -orig.amount);
+      this.addBalance(beneficiary, 'current', orig.amount);
+
+      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`] = this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`]
+      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`].date = new Date().getTime();
+      this._committed[`${proposer}-${beneficiary}-${orig.msgId}`].responseMsgObj = responseMsgObj;
+     
+    }
+    delete this._pendingMsg[`${proposer}-${beneficiary}-${orig.msgId}`];
+  },
+  getRepeatResponse: function (peerName, msgObj, outgoing) {
+    const proposer = (outgoing ? 'bank' : peerName);
+    const beneficiary = (outgoing ? peerName : 'bank');
+    if (typeof this._committed[`${proposer}-${beneficiary}-${msgObj.msgId}`] !== 'undefined') {
+      return this._committed[`${proposer}-${beneficiary}-${msgObj.msgId}`].responseMsgObj;
+    }
   }
 }
 
