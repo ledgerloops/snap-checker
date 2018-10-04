@@ -1,4 +1,3 @@
-var verifyHash = require('./hashlocks').verifyHash;
 var Hubbie = require('hubbie');
 var Ledger = require('./ledger');
 var Loops = require('./loops');
@@ -8,8 +7,6 @@ const UNIT_OF_VALUE = 'UCR';
 
 const INITIAL_RESEND_DELAY = 100;
 const RESEND_INTERVAL_BACKOFF = 1.5;
-
-let msgLog = [];
 
 function Agent (myName, mySecret, credsHandler) {
   if (!credsHandler) {
@@ -39,78 +36,18 @@ function Agent (myName, mySecret, credsHandler) {
       console.error('msg not JSON', peerName, msg);
       return;
     }
-    msgLog.push([peerName + ' -> ' + myName, msgObj]);
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
-        const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, false);
-        if (repeatResponse) {
-          this._hubbie.send(peerName, JSON.stringify(repeatResponse));
-        } else if (this._ledger.markAsPending(peerName, msgObj, false)) {
-          this._loops.getResponse(peerName, msgObj).then((response) => {
-            this._hubbie.send(peerName, JSON.stringify(response.msgObj));
-            console.log('resolvePending from src/index', JSON.stringify(msgObj)); 
-            // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
-            this._ledger.resolvePending(peerName, msgObj, false, response.commit, response.msgObj);
-          });
-        }
+        this._ledger.logMsg(peerName, msgObj, false);
+        this._handleRequestMsg(peerName, msgObj);
         break;
       }
-      case 'FULFILL': {
-        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
-          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
-          if (repeatResponse) {
-            console.log('ignoring resend of fulfill');
-          } else {
-            console.error('fulfill for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
-          }
-          return;
-        }
-        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
-        console.log('verifying hash!', msgObj);
-        if (!verifyHash(msgObj.preimage, orig.condition)) {
-          console.log('no hash match!', msg, orig);
-          return;
-        } else {
-          console.log('hash match!');
-        }
-        // fall-through from FULFILL to ACK:
-      }
-      case 'ACK': {
-        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
-          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
-          if (repeatResponse) {
-            console.log('ignoring resend of ack');
-          } else {
-            console.error('ack for unknown orig!', peerName, msgObj, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
-          }
-          return;
-        }
-        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
-        console.log('received ACK', { msgObj, orig });
-        // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
-        this._ledger.resolvePending(peerName, orig, true, true, msgObj);
-        const resolve = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].resolve;
-        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
-        resolve(msgObj.preimage);
-        break;
-      }
+      case 'ACK':
+      case 'FULFILL':
       case 'REJECT': {
-        if (typeof this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] === 'undefined') {
-          const repeatResponse = this._ledger.getRepeatResponse(peerName, msgObj, true);
-          if (repeatResponse) {
-            console.log('ignoring resend of reject');
-          } else {
-            console.error('REJECT for unknown msg', this._myName, peerName + '-' + msgObj.msgId, Object.keys(this._pendingOutgoingProposals), Object.keys(this._ledger._committed));
-            return;
-          }
-        }
-        const orig = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].msgObj;
-        // resolvePending: function (peerName, orig, outgoing, commit, responseMsgObj) {
-        this._ledger.resolvePending(peerName, orig, true, false, msgObj);
-        const reject = this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId].reject;
-        delete this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId];
-        reject(new Error(msgObj.reason));
+        this._ledger.logMsg(peerName, msgObj, false);
+        this._handleResponseMsg(peerName, msgObj);
         break;
       }
       default: {
@@ -121,26 +58,52 @@ function Agent (myName, mySecret, credsHandler) {
 }
 
 Agent.prototype = {
+  _handleRequestMsg: function (peerName, msgObj) {
+    console.log('received request', { msgObj, peerName});
+    const repeatResponse = this._ledger.getResponse(peerName, msgObj, false);
+    if (repeatResponse) {
+      this._hubbie.send(peerName, JSON.stringify(repeatResponse));
+    } else {
+      this._loops.getResponse(peerName, msgObj).then((responseMsgObj) => {
+        this._hubbie.send(peerName, JSON.stringify(responseMsgObj));
+        this._ledger.logMsg(peerName, responseMsgObj, true);
+      }).catch((err) => {
+        const rejection = {
+          protocol: LEDGERLOOPS_PROTOCOL_VERSION,
+          msgType: 'REJECT',
+          msgId: msgObj.msgId,
+          reason: err.message
+        };
+        this._hubbie.send(peerName, JSON.stringify(rejection));
+        this._ledger.logMsg(peerName, rejection, true);
+      });
+    }
+  },
+  _handleResponseMsg: function (peerName, msgObj) {
+    console.log('received response', { msgObj, peerName});
+    this._ledger.logMsg(peerName, msgObj, false);
+  },
 
   // private, to be called by Loops handler:
   _propose: function (peerName, amount, hashHex, routeId) {
     const msgObj = this._ledger.create(peerName, amount, hashHex, routeId);
-    this._ledger.markAsPending(peerName, msgObj, true);
-    const promise = new Promise ((resolve, reject) => {
-      this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId] = { resolve, reject, msgObj };
-    });
+    const promise = this._ledger.logMsg(peerName, msgObj, true);
     console.log(this._myName, 'proposing', peerName + '-' + msgObj.msgId);
     let resendDelay = INITIAL_RESEND_DELAY
+    let resendTimer;
     const sendAndRetry = () => {
-      if (!this._pendingOutgoingProposals[peerName + '-' + msgObj.msgId]) {
-        return;
-      }
       this._hubbie.send(peerName, JSON.stringify(msgObj), true);
       resendDelay *= RESEND_INTERVAL_BACKOFF;
-      setTimeout(sendAndRetry, resendDelay);
+      resendTimer = setTimeout(sendAndRetry, resendDelay);
     };
     sendAndRetry();
-    return promise;
+    return promise.then((preimage) => {
+      clearTimeout(resendTimer);
+      return preimage;
+    }).catch((err) => {
+      clearTimeout(resendTimer);
+      throw err;
+    });
   },
   _sendCtrl: function(peerName, msgObj) {
     msgObj.protocol = LEDGERLOOPS_PROTOCOL_VERSION;
@@ -178,6 +141,5 @@ Agent.prototype = {
 };
 
 module.exports = {
-  Agent,
-  msgLog
+  Agent
 }

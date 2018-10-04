@@ -44,22 +44,16 @@ Loops.prototype = {
       this._setSent(peerName, 'cwise', routeId, false);
       this._setRcvd(peerName, 'fwise', routeId, true);
       return Promise.resolve({
-        msgObj: {
           msgId: msgObj.msgId,
           msgType: 'ACK'
-        },
-        commit: true
-      });
+        });
     }
     if (msgObj.msgType === 'COND') {
       if (this._preimages[msgObj.condition]) {
         return Promise.resolve({
-          msgObj: {
-            msgId: msgObj.msgId,
-            msgType: 'FULFILL', 
-            preimage: this._preimages[msgObj.condition].toString('hex')
-          },
-          commit: true
+          msgId: msgObj.msgId,
+          msgType: 'FULFILL', 
+          preimage: this._preimages[msgObj.condition].toString('hex')
         });
       }
       for (let fwdPeerName in this._probesRcvd) {
@@ -68,43 +62,31 @@ Loops.prototype = {
           return this._agent._propose(fwdPeerName, msgObj.amount, msgObj.condition, msgObj.routeId).then((result) => {
             console.log('passing back fulfill', peerName, fwdPeerName, result);
             return {
-              msgObj: {
-                msgId: msgObj.msgId,
-                msgType: 'FULFILL',
-                preimage: result
-              },
-              commit: true
+              msgId: msgObj.msgId,
+              msgType: 'FULFILL',
+              preimage: result
             };
           }, (err) => {
             console.error(err.message);
-            panic();
+            // panic();
             return {
-              msgObj: {
-                msgId: msgObj.msgId,
-                msgType: 'REJECT',
-                reason: err.message
-              },
-              commit: false
+              msgId: msgObj.msgId,
+              msgType: 'REJECT',
+              reason: err.message
             };
           });
         }
       }
       return Promise.resolve({
-        msgObj: {
-          msgId: msgObj.msgId,
-          msgType: 'REJECT',
-          reason: 'cannot route ' + msgObj.routeId
-        },
-        commit: false
+        msgId: msgObj.msgId,
+        msgType: 'REJECT',
+        reason: 'cannot route ' + msgObj.routeId
       });
     }
     return Promise.reject({
-      msgObj: {
-        msgId: msgObj.msgId,
-        msgType: 'REJECT',
-        reason: 'Loops handler not implemented yet'
-      },
-      commit: false
+      msgId: msgObj.msgId,
+      msgType: 'REJECT',
+      reason: 'Loops handler not implemented yet'
     });
   },
   handleControlMessage: function (peerName, msgObj) {

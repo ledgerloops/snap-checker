@@ -131,26 +131,26 @@ setTimeout(() => {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-  displayAgents();
+//  displayAgents();
 }, 1000);
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-  displayAgents();
+//  displayAgents();
 }, 2000);
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-  displayAgents();
+//  displayAgents();
 }, 3000);
 setTimeout(() => {
   for (let agentName in agents) {
     agents[agentName]._loops.forwardProbes();
     agents[agentName]._loops.sendProbes();
   }
-  displayAgents();
+//  displayAgents();
 }, 4000);
