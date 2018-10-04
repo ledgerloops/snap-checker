@@ -39,7 +39,9 @@ function Agent (myName, mySecret, credsHandler) {
     switch (msgObj.msgType) {
       case 'ADD':
       case 'COND': {
-        this._ledger.logMsg(peerName, msgObj, false);
+        this._ledger.logMsg(peerName, msgObj, false).catch((err) => {
+          console.log('incoming request was rejected by us', err);
+        });
         this._handleRequestMsg(peerName, msgObj);
         break;
       }
@@ -67,15 +69,6 @@ Agent.prototype = {
       this._loops.getResponse(peerName, msgObj).then((responseMsgObj) => {
         this._hubbie.send(peerName, JSON.stringify(responseMsgObj));
         this._ledger.logMsg(peerName, responseMsgObj, true);
-      }).catch((err) => {
-        const rejection = {
-          protocol: LEDGERLOOPS_PROTOCOL_VERSION,
-          msgType: 'REJECT',
-          msgId: msgObj.msgId,
-          reason: err.message
-        };
-        this._hubbie.send(peerName, JSON.stringify(rejection));
-        this._ledger.logMsg(peerName, rejection, true);
       });
     }
   },

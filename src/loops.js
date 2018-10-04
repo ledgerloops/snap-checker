@@ -67,7 +67,7 @@ Loops.prototype = {
               preimage: result
             };
           }, (err) => {
-            console.error(err.message);
+            console.log('onward peer rejected', err.message);
             // panic();
             return {
               msgId: msgObj.msgId,
@@ -83,10 +83,10 @@ Loops.prototype = {
         reason: 'cannot route ' + msgObj.routeId
       });
     }
-    return Promise.reject({
+    return Promise.resolve({
       msgId: msgObj.msgId,
       msgType: 'REJECT',
-      reason: 'Loops handler not implemented yet'
+      reason: 'can only respond to ADD or COND requests'
     });
   },
   handleControlMessage: function (peerName, msgObj) {
