@@ -20,7 +20,7 @@ module.exports = function(grunt) {
       },
       main: {
         src: 'src/drop.js',
-        dest: 'js/ledgerloops.js',
+        dest: 'js/networkledger.js',
       }
     },
     watch: {

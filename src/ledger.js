@@ -1,4 +1,4 @@
-var verifyHash = require('./hashlocks').verifyHash;
+var verifyHash = require('hashlocks').verifyHash;
 
 function Ledger (unit, myDebugName) {
   this._myDebugName = myDebugName;

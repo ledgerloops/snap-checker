@@ -7,10 +7,9 @@
     "test": "test"
   },
   "dependencies": {
+    "hashlocks": "^1.0.0",
     "hubbie": "3.2.2",
-    "node-fetch": "^2.2.0",
-    "randombytes": "^2.0.6",
-    "sha.js": "git+https://github.com/crypto-browserify/sha.js.git"
+    "ledgerloops": "^0.8.5"
   },
   "devDependencies": {
     "eslint": "^5.6.0",

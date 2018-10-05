@@ -1,6 +1,6 @@
 var Hubbie = require('hubbie');
 var Ledger = require('./ledger');
-var Loops = require('./loops');
+var Loops = require('ledgerloops');
 
 const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
 const UNIT_OF_VALUE = 'UCR';
