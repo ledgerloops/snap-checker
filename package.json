@@ -1,7 +1,7 @@
 {
   "name": "ledgerloops",
-  "version": "0.8.3",
-  "description": "Hashlocked IOUs make the world go round",
+  "version": "0.8.4",
+  "description": "Moved to https://npmjs/package/networkledger",
   "main": "src/index.js",
   "directories": {
     "test": "test"
