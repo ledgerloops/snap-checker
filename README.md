@@ -47,44 +47,41 @@ Messages and their fields when on the wire:
 ### Network Ledger Messages
 The following set of messages is an evolution of the Synchronized Network Accounting Protocol (SNAP), as originally invented by my colleague Bob Way at Ripple.
 
-* ADD (request)
-  * protocol: 'ledgerloops-0.8'
-  * msgType: 'ADD'
+* PROPOSE (request)
+  * protocol: 'networkledger-1.0'
+  * msgType: 'PROPOSE'
   * msgId: integer
+  * condition: <256 bits in a lower-case hex string> (optional)
   * beneficiary: 'you' or 'me'
   * amount: integer
   * unit: 'UCR'
+  * routeId: String (optional)
   * note: String (optional)
 
-* COND (request)
-  * protocol: 'ledgerloops-0.8'
-  * msgType: 'COND'
-  * msgId: integer
-  * condition: <256 bits in a lower-case hex string>
-  * beneficiary: 'you' or 'me'
-  * amount: integer
-  * unit: 'UCR'
-  * routeId: String (from probes)
-  * note: String (optional)
+PROPOSE requests can be resent idempotently until a response is received:
 
-Requests can be resent idempotently until a response is received.
-
-* ACK (response)
-  * protocol: 'ledgerloops-0.8'
-  * msgType: 'ACK'
+* ACCEPT (response)
+  * protocol: 'networkledger-1.0'
+  * msgType: 'ACCEPT'
   * msgId: integer
+  * preimage: <256 bits in lower-case hex format> (if the request had a condition)
 
 * REJECT (response)
-  * protocol: 'ledgerloops-0.8'
+  * protocol: 'networkledger-1.0'
   * msgType: 'REJECT'
   * msgId: integer
   * reason: String (optional)
 
-* FULFILL (response)
-  * protocol: 'ledgerloops-0.8'
-  * msgType: 'FULFILL'
-  * msgId: integer
-  * preimage: <256 bits in lower-case hex format>
+The receiver decides whether the sender's proposal gets accepted onto the ledger or not.
+These messages can be sent on a bi-directional messaging channel. Both parties have three balances: current, payable, and receivable.
+All balances of both parties start at zero. When a proposal is sent, the amount is added to the sender's payable balance, and to the
+receiver's receivable balance. When it's accepted the amount is deducted from the sender's payable and current balances. For the receiver,
+the amount is moved from receivable to current. If a proposal is rejected, the money is just deducted from sender's payable and from
+receiver's receivable, without affecting their current balances. The two current balances always add up to zero. And one party's payable
+balance is always equal to the party's receivable balance.
+If Bob disappears, Alice would lose at least her own current-payable balance, and at most her own current+receivable balance.
+Discrepancies can exist where Bob has marked one of Alice's proposal as accepted or rejected, but the response message doesn't reach Alice successfully. In that case, Alice would repeat her request indefinitely until a valid response from Bob arrives.
+Proposals may have negative amounts, meaning they are essentially pull payments instead of regular ledger transfers.
 
 ## LedgerLoops control messages
 

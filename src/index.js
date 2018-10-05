@@ -2,7 +2,7 @@ var Hubbie = require('hubbie');
 var Ledger = require('./ledger');
 var Loops = require('ledgerloops');
 
-const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.8';
+const LEDGERLOOPS_PROTOCOL_VERSION = 'ledgerloops-0.9';
 const UNIT_OF_VALUE = 'UCR';
 
 const INITIAL_RESEND_DELAY = 100;
@@ -37,16 +37,14 @@ function Agent (myName, mySecret, credsHandler) {
       return;
     }
     switch (msgObj.msgType) {
-      case 'ADD':
-      case 'COND': {
+      case 'PROPOSE': {
         this._ledger.logMsg(peerName, msgObj, false).catch((err) => {
           console.log('incoming request was rejected by us', err);
         });
         this._handleRequestMsg(peerName, msgObj);
         break;
       }
-      case 'ACK':
-      case 'FULFILL':
+      case 'ACCEPT':
       case 'REJECT': {
         this._ledger.logMsg(peerName, msgObj, false);
         this._handleResponseMsg(peerName, msgObj);

@@ -13,29 +13,21 @@ Ledger.prototype = {
     if (!this.myNextId[peerName]) {
       this.myNextId[peerName] = 0;
     }
-    if (condition) {
-      return {
-        msgType: 'COND',
-        msgId: this.myNextId[peerName]++,
-        amount,
-        unit: this._unit,
-        condition,
-        routeId
-      }
-    } else {
-      return {
-        msgType: 'ADD',
-        msgId: this.myNextId[peerName]++,
-        amount,
-        unit: this._unit
-      }
-    }
+    return {
+      protocol: 'networkledger-1.0',
+      msgType: 'PROPOSE',
+      msgId: this.myNextId[peerName]++,
+      amount,
+      unit: this._unit,
+      condition,
+      routeId
+    };
   },
   addBalance: function (party, account, amount) {
     console.log('addBalance', { party, account, amount });
     if (typeof amount !== 'number') {
       panic();
-    } 
+    }
     if (!this._balance[party]) {
       this._balance[party] = {
         current: 0,
@@ -54,7 +46,7 @@ Ledger.prototype = {
   getLowerPeers: function (limit) {
     let list = [];
     for (let peerName in this._balance) {
-      // imagine all this peer's receivables succeed, and all his payables fail: 
+      // imagine all this peer's receivables succeed, and all his payables fail:
       const highestBalanceEstimate = this._balance[peerName].current + this._balance[peerName].receivable;
       if (highestBalanceEstimate < limit) {
         list.push([peerName, highestBalanceEstimate]);
@@ -65,7 +57,7 @@ Ledger.prototype = {
   getHigherPeers: function (limit) {
     let list = [];
     for (let peerName in this._balance) {
-      // imagine all this peer's receivables fail, and all his payables succeed: 
+      // imagine all this peer's receivables fail, and all his payables succeed:
       const lowestBalanceEstimate = this._balance[peerName].current - this._balance[peerName].payable;
       if (lowestBalanceEstimate > limit) {
         list.push([peerName, lowestBalanceEstimate]);
@@ -80,14 +72,12 @@ Ledger.prototype = {
     let beneficiary;
     let response;
     switch (msgObj.msgType) {
-      case 'ADD':
-      case 'COND':
+      case 'PROPOSE':
         proposer = sender;
         beneficiary = receiver;
         response = false;
         break;
-      case 'ACK':
-      case 'FULFILL':
+      case 'ACCEPT':
       case 'REJECT':
         proposer = receiver;
         beneficiary = sender;
@@ -112,7 +102,7 @@ Ledger.prototype = {
     }
     let entry = this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId];
     entry.messages.push(msgObj);
-    if (response) { // ACK, FULFILL, REJECT
+    if (response) { // ACCEPT, REJECT
       if (entry['status'] === 'pending') {
         if (msgObj.msgType === 'REJECT') {
           entry['status'] = 'rejected';
@@ -135,7 +125,7 @@ Ledger.prototype = {
           }
         }
       }
-    } else { // ADD, COND
+    } else { // PROPOSE
       if (entry['status'] === 'new') {
         entry['status'] = 'pending';
         entry.request = msgObj;
