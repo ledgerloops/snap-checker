@@ -1,6 +1,6 @@
 {
   "name": "networkledger",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Network Ledger based on ledgerloops-0.8 messages over Hubbie",
   "main": "src/index.js",
   "directories": {
