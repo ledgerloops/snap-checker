@@ -46,12 +46,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ledgerloops/ledgerloops.git"
+    "url": "git+https://github.com/ledgerloops/networkledger.git"
   },
   "author": "Michiel de Jong",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ledgerloops/ledgerloops/issues"
+    "url": "https://github.com/ledgerloops/networkledger/issues"
   },
   "homepage": "https://ledgerloops.com"
 }
