@@ -44,7 +44,10 @@ Examples:
 
 Messages and their fields when on the wire:
 
-* ADD
+### Network Ledger Messages
+The following set of messages is an evolution of the Synchronized Network Accounting Protocol (SNAP), as originally invented by my colleague Bob Way at Ripple.
+
+* ADD (request)
   * protocol: 'ledgerloops-0.8'
   * msgType: 'ADD'
   * msgId: integer
@@ -53,18 +56,7 @@ Messages and their fields when on the wire:
   * unit: 'UCR'
   * note: String (optional)
 
-* ACK
-  * protocol: 'ledgerloops-0.8'
-  * msgType: 'ACK'
-  * msgId: integer
-
-* REJECT
-  * protocol: 'ledgerloops-0.8'
-  * msgType: 'REJECT'
-  * msgId: integer
-  * reason: String (optional)
-
-* COND
+* COND (request)
   * protocol: 'ledgerloops-0.8'
   * msgType: 'COND'
   * msgId: integer
@@ -75,11 +67,26 @@ Messages and their fields when on the wire:
   * routeId: String (from probes)
   * note: String (optional)
 
-* FULFILL
+Requests can be resent idempotently until a response is received.
+
+* ACK (response)
+  * protocol: 'ledgerloops-0.8'
+  * msgType: 'ACK'
+  * msgId: integer
+
+* REJECT (response)
+  * protocol: 'ledgerloops-0.8'
+  * msgType: 'REJECT'
+  * msgId: integer
+  * reason: String (optional)
+
+* FULFILL (response)
   * protocol: 'ledgerloops-0.8'
   * msgType: 'FULFILL'
   * msgId: integer
   * preimage: <256 bits in lower-case hex format>
+
+## LedgerLoops control messages
 
 * PLEASE-FINALIZE
   * protocol: 'ledgerloops-0.8'
