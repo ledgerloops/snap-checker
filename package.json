@@ -1,7 +1,7 @@
 {
   "name": "networkledger",
-  "version": "0.8.5",
-  "description": "Network Ledger based on ledgerloops-0.8 messages over Hubbie",
+  "version": "0.9.0",
+  "description": "Synchronized Network Accounting Protocol",
   "main": "src/index.js",
   "directories": {
     "test": "test"

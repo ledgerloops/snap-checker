@@ -1,6 +1,10 @@
-# Network Ledger
+# Synchronized Network Accounting Protocol (SNAP)
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
+This is an implementation of [SNAP](protocol.md) based on [Hubbie](https://github.com/ledgerloops/hubbie) for messaging, and including [LedgerLoops](https://github.com/ledgerloops/ledgerloops) for cycle detection.
+
+NPM package: [networkledger](https://www.npmjs.com/package/networkledger)
 
 Examples:
 
@@ -48,7 +52,6 @@ Messages and their fields when on the wire:
 The following set of messages is an evolution of the Synchronized Network Accounting Protocol (SNAP), as originally invented by my colleague Bob Way at Ripple.
 
 * PROPOSE (request)
-  * protocol: 'networkledger-1.0'
   * msgType: 'PROPOSE'
   * msgId: integer
   * condition: <256 bits in a lower-case hex string> (optional)
@@ -61,13 +64,11 @@ The following set of messages is an evolution of the Synchronized Network Accoun
 PROPOSE requests can be resent idempotently until a response is received:
 
 * ACCEPT (response)
-  * protocol: 'networkledger-1.0'
   * msgType: 'ACCEPT'
   * msgId: integer
   * preimage: <256 bits in lower-case hex format> (if the request had a condition)
 
 * REJECT (response)
-  * protocol: 'networkledger-1.0'
   * msgType: 'REJECT'
   * msgId: integer
   * reason: String (optional)
