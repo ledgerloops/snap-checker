@@ -41,3 +41,29 @@ The transfer life cycle works as follows:
 * there are several standard ways to exchange SNAP messages, e.g. a WebSocket, with /username/token in the WebSocket server URL for authentication, and with the 'snap-1.0' subprotocol. Or a HTTP POST, again with /username/token in the URL. There, response status is always 200, even if the service "successfully decides to reject a proposal" :) I'm also working on a WebRTC one.
 
 The reference implementation of SNAP is used in the "Network Money" browser extension, which reacts to the "ledger" link-rel in html pages you visit, so that makes it a useful protocol also for monetizing IndieWeb blogposts!
+
+# Example transcript (unconditional, rejected)
+* Alice -> Bob:
+  * `msgType: 'PROPOSE'`
+  * `msgId: 37`
+  * `amount: 5`
+  * `unit: '1E-6 USD'`
+
+* Bob -> Alice:
+  * `msgType: 'REJECT'`
+  * `msgId: 37`
+  * `reason: 'not interested'`
+
+# Example transcript (conditional, accepted)
+
+* Bob -> Alice:
+  * `msgType: 'PROPOSE'`
+  * `msgId: 18`
+  * `condition: 'adf6482b679993104297b720fd154ad877700f491f3184552c0adcb745ac3308'`
+  * `amount: 8`
+  * `unit: '1E0 EUR'`
+
+* Alice -> Bob:
+  * `msgType: 'ACCEPT'`
+  * `msgId: 18`
+  * `preimage: '105580cad26868e3a356cca1ad3a1eb165ce9bf8ada72b2ccfcc04d4810355fa'`
