@@ -1,12 +1,11 @@
 var Agent = require('../..').Agent;
 
-var agent = new Agent('heroku', process.env.SECRET, () => true);
+var agent = new Agent('blogger', 'payme');
 
-var http = require('http');
-var fs = require('fs');
-var htmlPage = fs.readFileSync('./examples/monetized-blog-heroku/index.html');
+const fs = require('fs');
+const htmlPage = fs.readFileSync('./examples/monetized-blog-heroku/index.html');
 
-var handler = (req, res) => {
+const handler = (req, res) => {
   if (req.url == '/') {
     res.writeHead(200);
     res.end(htmlPage);

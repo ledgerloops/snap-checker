@@ -1,7 +1,7 @@
 var Agent = require('../..').Agent;
 
-var agent = new Agent('blogger', true);
-agent.ensurePeer('reader', 8080);
+var agent = new Agent('blogger', 'payme');
+agent.listen({ port: 8080 });
 
 function displayAgents() {
   var text = '-------------------------------------\n';
