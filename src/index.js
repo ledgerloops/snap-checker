@@ -64,7 +64,19 @@ Agent.prototype = {
     if (repeatResponse) {
       this._hubbie.send(peerName, JSON.stringify(repeatResponse));
     } else {
-      this._loops.getResponse(peerName, msgObj).then((responseMsgObj) => {
+      this._loops.getResponse(peerName, msgObj).then((result) => {
+        return {
+          msgType: 'ACCEPT',
+          msgId: msgObj.msgId,
+          preimage: result
+        };
+      }).catch((err) => {
+        return {
+          msgType: 'REJECT',
+          msgId: msgObj.msgId,
+          reason: err.message
+        };
+      }).then((responseMsgObj) => {
         this._hubbie.send(peerName, JSON.stringify(responseMsgObj));
         this._ledger.logMsg(peerName, responseMsgObj, true);
       });
