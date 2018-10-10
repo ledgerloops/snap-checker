@@ -14,7 +14,6 @@ Ledger.prototype = {
       this.myNextId[peerName] = 0;
     }
     return {
-      protocol: 'networkledger-1.0',
       msgType: 'PROPOSE',
       msgId: this.myNextId[peerName]++,
       amount,
