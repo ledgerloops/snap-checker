@@ -75,7 +75,7 @@ Ledger.prototype = {
     ]);
   },
   update: function (proposer, beneficiary, msgId, status, response) {
-    return this._db('UPDATE ledger SET status = $1, response = $2 WHERE proposer = $3 AND beneficiary = $4 AND id = $5', [
+    return this._db('UPDATE ledger SET status = $1, response = $2 WHERE proposer = $3 AND beneficiary = $4 AND msgId = $5', [
       status,
       JSON.stringify(response),
       proposer,
