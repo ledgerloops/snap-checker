@@ -1,8 +1,9 @@
 var verifyHash = require('hashlocks').verifyHash;
 
-function Ledger (unit, myDebugName) {
+function Ledger (unit, myDebugName, db) {
   this._myDebugName = myDebugName;
   this._unit = unit;
+  this._db = db;
   this._balance = {};
   this._msgLog = {};
   this.myNextId = {};
@@ -64,7 +65,26 @@ Ledger.prototype = {
     }
     return list.sort((a, b) => a[1] - b[1]); // highest first
   },
+  insert: function (proposer, beneficiary, msgObj) {
+    return this._db('INSERT INTO ledger (proposer, beneficiary, msgId, request, status) VALUES ($1, $2, $3, $4, $5)', [
+      proposer,
+      beneficiary,
+      msgObj.msgId,
+      JSON.stringify(msgObj),
+      'pending'
+    ]);
+  },
+  update: function (proposer, beneficiary, msgId, status, response) {
+    return this._db('UPDATE ledger SET status = $1, response = $2 WHERE proposer = $3 AND beneficiary = $4 AND id = $5', [
+      status,
+      JSON.stringify(response),
+      proposer,
+      beneficiary,
+      msgId
+    ]);
+  },
   logMsg: function (peerName, msgObj, outgoing) {
+    console.log('logMsg', peerName, msgObj, outgoing);
     const sender = (outgoing ? 'bank' : peerName);
     const receiver = (outgoing ? peerName : 'bank');
     let proposer;
@@ -108,6 +128,7 @@ Ledger.prototype = {
           this.addBalance(proposer, 'payable', -entry.request.amount);
           this.addBalance(beneficiary, 'receivable', -entry.request.amount);
           entry.response = msgObj;
+          this.update(proposer, beneficiary, msgObj.msgId, 'rejected', msgObj);
           entry.reject(new Error(msgObj.reason));
         } else {
           if (entry.request.condition && !verifyHash(msgObj.preimage, entry.request.condition)) {
@@ -120,6 +141,7 @@ Ledger.prototype = {
             this.addBalance(beneficiary, 'current', entry.request.amount);
             entry['status'] = 'accepted';
             entry.response = msgObj;
+            this.update(proposer, beneficiary, msgObj.msgId, 'accepted', msgObj);
             entry.resolve(msgObj.preimage);
           }
         }
@@ -128,6 +150,7 @@ Ledger.prototype = {
       if (entry['status'] === 'new') {
         entry['status'] = 'pending';
         entry.request = msgObj;
+        this.insert(proposer, beneficiary, msgObj);
         const promise = new Promise((resolve, reject) => {
           entry.resolve = resolve;
           entry.reject = reject;

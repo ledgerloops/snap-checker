@@ -8,18 +8,19 @@ const UNIT_OF_VALUE = 'UCR';
 const INITIAL_RESEND_DELAY = 100;
 const RESEND_INTERVAL_BACKOFF = 1.5;
 
-function Agent (myName, mySecret, credsHandler) {
+function Agent (myName, mySecret, credsHandler, db) {
   if (!credsHandler) {
     credsHandler = () => true;
   }
   this._myName = myName
   this._mySecret = mySecret
   this._hubbie = new Hubbie();
-  this._ledger = new Ledger(UNIT_OF_VALUE, myName);
+  this._ledger = new Ledger(UNIT_OF_VALUE, myName, db);
   this._loops = new Loops(this);
   this._pendingOutgoingProposals = {};
   this._hubbie.listen({ myName: myName });
   this._hubbie.on('peer', (eventObj) => {
+    console.log('got hubbie peer', eventObj);
     if (eventObj.protocols && eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
       console.error('Client does not support ' + LEDGERLOOPS_PROTOCOL_VERSION, eventObj);
       return false;
@@ -29,6 +30,7 @@ function Agent (myName, mySecret, credsHandler) {
     }
   });
   this._hubbie.on('message', (peerName, msg) => {
+    console.log('got message through hubbie!', peerName, msg);
     let msgObj;
     try {
       msgObj = JSON.parse(msg);
