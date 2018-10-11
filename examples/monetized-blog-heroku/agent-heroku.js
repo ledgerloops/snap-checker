@@ -33,7 +33,7 @@ async function runSql(query) {
   try {
     const client = await pool.connect();
     const result = await client.query(query);
-    const results = { 'results': (result) ? result.rows : null};
+    const results = (result) ? result.rows : null;
     return results;
     client.release();
   } catch (err) {
