@@ -10,7 +10,10 @@ const RESEND_INTERVAL_BACKOFF = 1.5;
 
 function Agent (myName, mySecret, credsHandler, db) {
   if (!credsHandler) {
-    credsHandler = () => true;
+    credsHandler = () => Promise.resolve(true);
+  }
+  if (!db) {
+    db = () => true;
   }
   this._myName = myName
   this._mySecret = mySecret
@@ -23,11 +26,11 @@ function Agent (myName, mySecret, credsHandler, db) {
     console.log('got hubbie peer', eventObj);
     if (eventObj.protocols && eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
       console.error('Client does not support ' + LEDGERLOOPS_PROTOCOL_VERSION, eventObj);
-      return false;
+      return Promise.resolve(false);
     }
-    if (credsHandler(eventObj)) {
-      return LEDGERLOOPS_PROTOCOL_VERSION;
-    }
+    const promise = credsHandler(eventObj);
+    console.log({ promise });
+    return promise;
   });
   this._hubbie.on('message', (peerName, msg) => {
     console.log('got message through hubbie!', peerName, msg);
