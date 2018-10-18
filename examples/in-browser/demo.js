@@ -33,11 +33,11 @@ function displayAgents() {
       let k;
       for (k in agents[nick]._peerHandlers[neighbor]._ledger._committed) {
         const entry = agents[nick]._peerHandlers[neighbor]._ledger._committed[k];
-        html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount}</strong></li>`;
+        html += `<li><strong>Entry ${k}: ${entry.msgType} ${entry.amount}</strong></li>`;
       }
       for (k in agents[nick]._peerHandlers[neighbor]._ledger._pending) {
         const entry = agents[nick]._peerHandlers[neighbor]._ledger._pending[k];
-        html += `<li>(entry ${k}: ${entry.msgType} ${entry.beneficiary} ${entry.amount})</li>`;
+        html += `<li>(entry ${k}: ${entry.msgType} ${entry.amount})</li>`;
       }
       html += '</ul></li>';
     }
