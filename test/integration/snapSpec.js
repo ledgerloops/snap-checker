@@ -75,6 +75,38 @@ describe('Snap', function () {
         ])));
       }).then(() => {
         return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 7');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 8');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 9');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 10');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
       });
     });
     it('should resolve the loop', function (done) {
