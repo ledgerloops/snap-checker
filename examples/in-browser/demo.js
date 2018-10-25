@@ -34,7 +34,7 @@ function displayAgents() {
     for (let peerName in transactions) {
       for (let k in transactions[peerName]) {
         const entry = transactions[peerName][k].request;
-        html += `<li><strong>Entry ${peerName} ${k}: ${entry.msgType} ${entry.amount} (${(entry.routeId + ' : ' + entry.condition).substring(0,50)})</strong></li>`;
+        html += `<li><strong>Entry ${peerName} ${k}: ${entry.amount} (${(entry.routeId + ' : ' + entry.condition).substring(0,50)})</strong></li>`;
       }
     }
     html += `</ul>`;

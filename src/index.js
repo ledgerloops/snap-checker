@@ -23,17 +23,17 @@ function Agent (myName, mySecret, credsHandler, db) {
   this._pendingOutgoingProposals = {};
   this._hubbie.listen({ myName: myName });
   this._hubbie.on('peer', (eventObj) => {
-    console.log('got hubbie peer', eventObj);
+    // console.log('got hubbie peer', eventObj);
     if (eventObj.protocols && eventObj.protocols.indexOf( LEDGERLOOPS_PROTOCOL_VERSION ) == -1) {
       console.error('Client does not support ' + LEDGERLOOPS_PROTOCOL_VERSION, eventObj);
       return Promise.resolve(false);
     }
     const promise = credsHandler(eventObj);
-    console.log({ promise });
+    // console.log({ promise });
     return promise;
   });
   this._hubbie.on('message', (peerName, msg) => {
-    console.log('got message through hubbie!', peerName, msg);
+    // console.log('got message through hubbie!', peerName, msg);
     let msgObj;
     try {
       msgObj = JSON.parse(msg);
@@ -44,7 +44,7 @@ function Agent (myName, mySecret, credsHandler, db) {
     switch (msgObj.msgType) {
       case 'PROPOSE': {
         this._ledger.logMsg(peerName, msgObj, false).catch((err) => {
-          console.log('incoming request was rejected by us', err);
+          // console.log('incoming request was rejected by us', err);
         });
         this._handleRequestMsg(peerName, msgObj);
         break;
@@ -64,7 +64,7 @@ function Agent (myName, mySecret, credsHandler, db) {
 
 Agent.prototype = {
   _handleRequestMsg: function (peerName, msgObj) {
-    console.log('received request', { msgObj, peerName});
+    // console.log('received request', { msgObj, peerName});
     const repeatResponse = this._ledger.getResponse(peerName, msgObj, false);
     if (repeatResponse) {
       this._hubbie.send(peerName, JSON.stringify(repeatResponse));
@@ -88,7 +88,7 @@ Agent.prototype = {
     }
   },
   _handleResponseMsg: function (peerName, msgObj) {
-    console.log('received response', { msgObj, peerName});
+    // console.log('received response', { msgObj, peerName});
     this._ledger.logMsg(peerName, msgObj, false);
   },
 
@@ -96,7 +96,7 @@ Agent.prototype = {
   _propose: function (peerName, amount, hashHex, routeId) {
     const msgObj = this._ledger.create(peerName, amount, hashHex, routeId);
     const promise = this._ledger.logMsg(peerName, msgObj, true);
-    console.log(this._myName, 'proposing', peerName + '-' + msgObj.msgId);
+    // console.log(this._myName, 'proposing', peerName + '-' + msgObj.msgId);
     let resendDelay = INITIAL_RESEND_DELAY
     let resendTimer;
     const sendAndRetry = () => {
@@ -149,5 +149,6 @@ Agent.prototype = {
 };
 
 module.exports = {
-  Agent
+  Agent,
+  unregisterNames: Hubbie.unregisterNames
 }

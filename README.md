@@ -1,6 +1,7 @@
 # Synchronized Network Accounting Protocol (SNAP)
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+[![Tests](https://api.travis-ci.org/ledgerloops/snap.svg?branch=master)](https://travis-ci.org/ledgerloops/snap)
 
 This is an implementation of [SNAP](protocol.md) based on [Hubbie](https://github.com/ledgerloops/hubbie) for messaging, and including [LedgerLoops](https://github.com/ledgerloops/ledgerloops) for cycle detection.
 
