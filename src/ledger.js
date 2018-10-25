@@ -24,7 +24,7 @@ Ledger.prototype = {
     };
   },
   addBalance: function (party, account, amount) {
-    console.log('addBalance', { party, account, amount });
+    // console.log('addBalance', { party, account, amount });
     if (typeof amount !== 'number') {
       panic();
     }
@@ -84,7 +84,7 @@ Ledger.prototype = {
     ]);
   },
   logMsg: function (peerName, msgObj, outgoing) {
-    console.log('logMsg', peerName, msgObj, outgoing);
+    // console.log('logMsg', peerName, msgObj, outgoing);
     const sender = (outgoing ? 'bank' : peerName);
     const receiver = (outgoing ? peerName : 'bank');
     let proposer;
@@ -103,7 +103,7 @@ Ledger.prototype = {
         response = true;
         break;
       default:
-        console.log(msgObj);
+        // console.log(msgObj);
         throw new Error('unknown message type');
     };
     if (!this._msgLog[`${proposer}-${beneficiary}`]) {
@@ -111,7 +111,7 @@ Ledger.prototype = {
     }
     if (!this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId]) {
       if (response) {
-        console.log(this._msgLog, proposer, beneficiary, msgObj);
+        // console.log(this._msgLog, proposer, beneficiary, msgObj);
         throw new Error('unexpected response!');
       }
       this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId] = {
@@ -132,7 +132,7 @@ Ledger.prototype = {
           entry.reject(new Error(msgObj.reason));
         } else {
           if (entry.request.condition && !verifyHash(msgObj.preimage, entry.request.condition)) {
-            console.log('hashlock error! not accepting transaction (yet)');
+            // console.log('hashlock error! not accepting transaction (yet)');
           } else {
             this.addBalance(proposer, 'payable', -entry.request.amount);
             this.addBalance(proposer, 'current', -entry.request.amount);
