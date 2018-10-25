@@ -82,6 +82,9 @@ Agent.prototype = {
       return this._hubbie.send(peerName, JSON.stringify(repeatResponse));
     }
     return this._loops.getResponse(peerName, msgObj).then((result) => {
+      if (typeof result == 'object') {; // FIXME: make LedgerLoops module return only preimage
+        return result;
+      }
       return {
         msgType: 'ACCEPT',
         msgId: msgObj.msgId,
