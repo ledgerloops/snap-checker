@@ -81,7 +81,9 @@ Agent.prototype = {
     if (repeatResponse) {
       return this._hubbie.send(peerName, JSON.stringify(repeatResponse));
     }
+    this.busy++;
     return this._loops.getResponse(peerName, msgObj).then((result) => {
+      this.busy--;
       if (typeof result == 'object') {; // FIXME: make LedgerLoops module return only preimage
         return result;
       }
@@ -91,6 +93,7 @@ Agent.prototype = {
         preimage: result
       };
     }).catch((err) => {
+      this.busy--;
       return {
         msgType: 'REJECT',
         msgId: msgObj.msgId,

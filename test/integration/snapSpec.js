@@ -3,7 +3,7 @@ const assert = require('chai').assert;
 
 describe('Snap', function () {
   beforeEach(function () {
-    this.agents= {
+    this.agents = {
       Mia: new Agent('Mia'),
       Marsellus: new Agent('Marsellus'),
       Vincent: new Agent('Vincent')
@@ -59,63 +59,19 @@ describe('Snap', function () {
         ])));
       }).then(() => {
         return new Promise(resolve => setTimeout(resolve, 0));
-      }).then(() => {
-        console.log('round 3');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
-      }).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 0));
-      }).then(() => {
-        console.log('round 6');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
-      }).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 0));
-      }).then(() => {
-        console.log('round 7');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
-      }).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 0));
-      }).then(() => {
-        console.log('round 8');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
-      }).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 0));
-      }).then(() => {
-        console.log('round 9');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
-      }).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 0));
-      }).then(() => {
-        console.log('round 10');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
-      }).then(() => {
-        return new Promise(resolve => setTimeout(resolve, 0));
       });
     });
     it('should resolve the loop', function (done) {
       let timer = setInterval(() => {
+        let someoneStillBusy = false;
         ['Mia', 'Marsellus', 'Vincent'].map(agentName => {
-          if (this.agents[agentName].busy) {
-            return;
+          if (this.agents[agentName].busy > 0) {
+            someoneStillBusy = true;
           }
         });
+        if (someoneStillBusy) {
+          return;
+        }
         clearInterval(timer);
  
         const balancesMia = this.agents.Mia.getBalances();
