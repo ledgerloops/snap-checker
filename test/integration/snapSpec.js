@@ -8,21 +8,92 @@ describe('Snap', function () {
       Marsellus: new Agent('Marsellus'),
       Vincent: new Agent('Vincent')
     };
-    return this.agents.Mia.addTransaction('Vincent', 100);
-    // this.agents.Vincent.addTransaction('Marsellus', 100);
-    // this.agents.Marsellus.addTransaction('Mia', 100);
+    return Promise.all([
+      this.agents.Mia.addTransaction('Vincent', 100),
+      this.agents.Vincent.addTransaction('Marsellus', 100),
+      this.agents.Marsellus.addTransaction('Mia', 100)
+    ]);
   });
 
   afterEach(function () {
     unregisterNames();
   });
 
-  it('should complete a payment', function (done) {
+  it('should complete a payment', function () {
     const balancesMia = this.agents.Mia.getBalances();
     assert.deepEqual(balancesMia, {
-      bank: { current: -100, receivable: 0, payable: 0 },
+      Marsellus: { current: -100, receivable: 0, payable: 0 },
+      bank: { current: 0, receivable: 0, payable: 0 },
       Vincent: { current: 100, receivable: 0, payable: 0 }
     });
-    done();
+  });
+  describe('with loops', function () {
+    beforeEach(function () {
+      console.log('round 1');
+      return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+        this.agents[agentName]._loops.forwardProbes(),
+        this.agents[agentName]._loops.sendProbes()
+      ]))).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 2');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 3');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 4');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 3');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      }).then(() => {
+        console.log('round 6');
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
+          this.agents[agentName]._loops.forwardProbes(),
+          this.agents[agentName]._loops.sendProbes()
+        ])));
+      }).then(() => {
+        return new Promise(resolve => setTimeout(resolve, 0));
+      });
+    });
+    it('should resolve the loop', function (done) {
+      let timer = setInterval(() => {
+        ['Mia', 'Marsellus', 'Vincent'].map(agentName => {
+          if (this.agents[agentName].busy) {
+            return;
+          }
+        });
+        clearInterval(timer);
+ 
+        const balancesMia = this.agents.Mia.getBalances();
+        assert.deepEqual(balancesMia, {
+          Marsellus: { current: 0, receivable: 0, payable: 0 },
+          bank: { current: 0, receivable: 0, payable: 0 },
+          Vincent: { current: 0, receivable: 0, payable: 0 }
+        });
+        done();
+      }, 5);
+    });
   });
 });
