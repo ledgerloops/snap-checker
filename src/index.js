@@ -1,6 +1,6 @@
 var Hubbie = require('hubbie');
 var Ledger = require('./ledger');
-var Loops = require('../../ledgerloops');
+var Loops = require('ledgerloops');
 
 const LEDGERLOOPS_PROTOCOL_VERSION = 'SNAP-1.0';
 const UNIT_OF_VALUE = 'UCR';
