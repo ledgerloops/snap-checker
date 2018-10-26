@@ -131,6 +131,7 @@ Ledger.prototype = {
           this.update(proposer, beneficiary, msgObj.msgId, 'rejected', msgObj);
           entry.reject(new Error(msgObj.reason));
         } else {
+          console.log('checking hashlock', msgObj, entry.request);
           if (entry.request.condition && !verifyHash(msgObj.preimage, entry.request.condition)) {
             // console.log('hashlock error! not accepting transaction (yet)');
           } else {

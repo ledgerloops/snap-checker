@@ -9,6 +9,7 @@ const INITIAL_RESEND_DELAY = 100;
 const RESEND_INTERVAL_BACKOFF = 1.5;
 
 function Agent (myName, mySecret, credsHandler, db) {
+  this.busy = 0;
   if (!credsHandler) {
     credsHandler = () => Promise.resolve(true);
   }
@@ -33,30 +34,41 @@ function Agent (myName, mySecret, credsHandler, db) {
     return promise;
   });
   this._hubbie.on('message', (peerName, msg) => {
-    // console.log('got message through hubbie!', peerName, msg);
+    this.busy++;
+    console.log(`${peerName}->${this._myName}`, msg);
     let msgObj;
     try {
       msgObj = JSON.parse(msg);
     } catch (e) {
       console.error('msg not JSON', peerName, msg);
+      this.busy--;
       return;
     }
     switch (msgObj.msgType) {
       case 'PROPOSE': {
-        this._ledger.logMsg(peerName, msgObj, false).catch((err) => {
-          // console.log('incoming request was rejected by us', err);
+        Promise.all([
+          this._ledger.logMsg(peerName, msgObj, false).catch((err) => {
+            // console.log('incoming request was rejected by us', err);
+          }),
+          this._handleRequestMsg(peerName, msgObj)
+        ]).then(() => {
+          this.busy--;
         });
-        this._handleRequestMsg(peerName, msgObj);
         break;
       }
       case 'ACCEPT':
       case 'REJECT': {
-        this._ledger.logMsg(peerName, msgObj, false);
-        this._handleResponseMsg(peerName, msgObj);
+        Promise.all([
+          this._ledger.logMsg(peerName, msgObj, false),
+          this._handleResponseMsg(peerName, msgObj)
+        ]).then(() => {
+          this.busy--;
+        });
         break;
       }
       default: {
         this._loops.handleControlMessage(peerName, msgObj);
+        this.busy--;
       }
     };
   });
@@ -67,25 +79,32 @@ Agent.prototype = {
     // console.log('received request', { msgObj, peerName});
     const repeatResponse = this._ledger.getResponse(peerName, msgObj, false);
     if (repeatResponse) {
-      this._hubbie.send(peerName, JSON.stringify(repeatResponse));
-    } else {
-      this._loops.getResponse(peerName, msgObj).then((result) => {
-        return {
-          msgType: 'ACCEPT',
-          msgId: msgObj.msgId,
-          preimage: result
-        };
-      }).catch((err) => {
-        return {
-          msgType: 'REJECT',
-          msgId: msgObj.msgId,
-          reason: err.message
-        };
-      }).then((responseMsgObj) => {
-        this._hubbie.send(peerName, JSON.stringify(responseMsgObj));
-        this._ledger.logMsg(peerName, responseMsgObj, true);
-      });
+      return this._hubbie.send(peerName, JSON.stringify(repeatResponse));
     }
+    this.busy++;
+    return this._loops.getResponse(peerName, msgObj).then((result) => {
+      this.busy--;
+      if (typeof result == 'object') {; // FIXME: make LedgerLoops module return only preimage
+        return result;
+      }
+      return {
+        msgType: 'ACCEPT',
+        msgId: msgObj.msgId,
+        preimage: result
+      };
+    }).catch((err) => {
+      this.busy--;
+      return {
+        msgType: 'REJECT',
+        msgId: msgObj.msgId,
+        reason: err.message
+      };
+    }).then((responseMsgObj) => {
+      return Promise.all([
+        this._hubbie.send(peerName, JSON.stringify(responseMsgObj)),
+        this._ledger.logMsg(peerName, responseMsgObj, true)
+      ]);
+    });
   },
   _handleResponseMsg: function (peerName, msgObj) {
     // console.log('received response', { msgObj, peerName});

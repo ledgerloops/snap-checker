@@ -10,7 +10,7 @@
     "bcrypt": "^3.0.1",
     "hashlocks": "1.0.0",
     "hubbie": "4.0.2",
-    "ledgerloops": "0.9.1",
+    "ledgerloops": "0.9.2",
     "pg": "^7.5.0"
   },
   "devDependencies": {
