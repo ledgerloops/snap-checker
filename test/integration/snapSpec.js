@@ -30,33 +30,33 @@ describe('Snap', function () {
   describe('with loops', function () {
     beforeEach(function () {
       console.log('round 1');
-      return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-        this.agents[agentName]._loops.forwardProbes(),
-        this.agents[agentName]._loops.sendProbes()
-      ]))).then(() => {
+      return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => { 
+        this.agents[agentName]._loops.forwardProbes();
+        this.agents[agentName]._loops.sendProbes();
+      })).then(() => {
         return new Promise(resolve => setTimeout(resolve, 0));
       }).then(() => {
         console.log('round 2');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => {
+          this.agents[agentName]._loops.forwardProbes();
+          this.agents[agentName]._loops.sendProbes();
+        }));
       }).then(() => {
         return new Promise(resolve => setTimeout(resolve, 0));
       }).then(() => {
         console.log('round 3');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => {
+          this.agents[agentName]._loops.forwardProbes();
+          this.agents[agentName]._loops.sendProbes();
+        }));
       }).then(() => {
         return new Promise(resolve => setTimeout(resolve, 0));
       }).then(() => {
         console.log('round 4');
-        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => Promise.all([
-          this.agents[agentName]._loops.forwardProbes(),
-          this.agents[agentName]._loops.sendProbes()
-        ])));
+        return Promise.all(['Mia', 'Marsellus', 'Vincent'].map(agentName => {
+          this.agents[agentName]._loops.forwardProbes(agentName == 'Vincent');
+          this.agents[agentName]._loops.sendProbes();
+        }));
       }).then(() => {
         return new Promise(resolve => setTimeout(resolve, 0));
       });
