@@ -119,7 +119,7 @@ Agent.prototype = {
     let resendDelay = INITIAL_RESEND_DELAY
     let resendTimer;
     const sendAndRetry = () => {
-      this._hubbie.send(peerName, JSON.stringify(msgObj), true);
+      this._hubbie.send(peerName, JSON.stringify(msgObj));
       resendDelay *= RESEND_INTERVAL_BACKOFF;
       resendTimer = setTimeout(sendAndRetry, resendDelay);
     };
