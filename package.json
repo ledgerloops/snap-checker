@@ -7,11 +7,9 @@
     "test": "test"
   },
   "dependencies": {
-    "bcrypt": "^3.0.1",
     "hashlocks": "1.0.0",
     "hubbie": "4.0.2",
-    "ledgerloops": "0.9.2",
-    "pg": "^7.5.0"
+    "ledgerloops": "0.9.2"
   },
   "devDependencies": {
     "chai": "^4.2.0",
@@ -34,7 +32,6 @@
     "test": "grunt test",
     "lint": "eslint src/**/*.js test/**/*.js",
     "build": "grunt build",
-    "start": "node examples/monetized-blog-heroku/agent-heroku.js",
     "watch": "grunt watch"
   },
   "testling": {
