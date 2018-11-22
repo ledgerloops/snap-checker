@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "hashlocks": "1.0.0",
-    "hubbie": "4.0.2",
+    "hubbie": "4.1.0",
     "ledgerloops": "0.9.2"
   },
   "devDependencies": {
