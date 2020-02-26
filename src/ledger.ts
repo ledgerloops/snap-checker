@@ -1,16 +1,15 @@
-/* global Promise */
 // import { verifyHash } from 'hashlocks';
 function verifyHash (preimage: string, condition: string) {
   return true;
 }
-class Promise {
-  constructor(func: (resolve: any, reject: any) => void) {
+// class Promise {
+//   constructor(func: (resolve: any, reject: any) => void) {
 
-  }
-}
-const Promise_resolve = () => {
-  return new Promise(() => {})
-}
+//   }
+// }
+// const Promise_resolve = () => {
+//   return new Promise(() => {})
+// }
 
 export function Ledger (unit: any, myDebugName, db) {
   this._myDebugName = myDebugName;
@@ -95,7 +94,7 @@ Ledger.prototype = {
       msgId
     ]);
   },
-  logMsg: function (peerName, msgObj, outgoing) {
+  logMsg: function (peerName, msgObj, outgoing): Promise<any> {
     // console.log('logMsg', peerName, msgObj, outgoing);
     const sender = (outgoing ? 'bank' : peerName);
     const receiver = (outgoing ? peerName : 'bank');
@@ -173,7 +172,7 @@ Ledger.prototype = {
         return promise;
       }
     }
-    return Promise_resolve();
+    return Promise.resolve();
   },
   getResponse: function (peerName, msgObj, outgoing) {
     const proposer = (outgoing ? 'bank' : peerName);
