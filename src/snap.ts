@@ -1,50 +1,51 @@
-// import { EventEmitter2 } from 'eventemitter2'
+import { HalfLedger, SnapMessageType, SnapMessage } from "./halfLedger";
 
-export type SendMsgFun = (msg: string) => Promise<void>;
-export type HandleProposalFun = (propsal: Transaction) => Promise<Decision>;
-
-export type Transaction = {
-  amount: number;
-  condition?: string;
-  timeout?: Date;
-};
-
-export type Decision = {
-  accepted: boolean;
-  preimage?: string;
-};
-
-export type HalfBalances = {
-  current: number;
-  payable: number;
-  receivable: number;
-};
-
-export type Balances = {
-  us: HalfBalances;
-  them: HalfBalances;
-};
-
-export class Snap /* extends EventEmitter2 */ {
-  sendMsg: SendMsgFun;
-  handleProposal: HandleProposalFun;
-  constructor(sendMsg: SendMsgFun, handleProposal: HandleProposalFun) {
-    // super();
-    this.sendMsg = sendMsg;
-    this.handleProposal = handleProposal;
+export class Snap {
+  us: HalfLedger;
+  them: HalfLedger;
+  constructor() {
+    this.us = new HalfLedger();
+    this.them = new HalfLedger();
   }
-  propose(trans: Transaction): number {
-    return 0;
+  handleIncoming(msg: SnapMessage) {
+    switch (msg.msgType) {
+      case SnapMessageType.Proposing:
+      case SnapMessageType.Accepted:
+      case SnapMessageType.Rejected:
+        this.them.handleProposerMessage(msg);
+        break;
+      case SnapMessageType.Proposed:
+      case SnapMessageType.Accepting:
+      case SnapMessageType.Rejecting:
+        this.us.handleDeciderMessage(msg);
+        break;
+      default:
+    }
+  }
+  handleOutgoing(msg: SnapMessage) {
+    switch (msg.msgType) {
+      case SnapMessageType.Proposing:
+      case SnapMessageType.Accepted:
+      case SnapMessageType.Rejected:
+        this.us.handleProposerMessage(msg);
+        break;
+      case SnapMessageType.Proposed:
+      case SnapMessageType.Accepting:
+      case SnapMessageType.Rejecting:
+        this.them.handleDeciderMessage(msg);
+        break;
+      default:
+    }
   }
   getBalances(): Balances {
     return {
       us: {
-        current: 0,
+        current: this.them.getSum(false) - this.us.getSum(false),
         payable: 0,
         receivable: 0
       },
       them: {
-        current: 0,
+        current: this.us.getSum(false) - this.them.getSum(false),
         payable: 0,
         receivable: 0
       }

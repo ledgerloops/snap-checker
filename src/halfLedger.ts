@@ -57,7 +57,7 @@ export class HalfLedger {
     this.max = 0;
     this.entries = [];
   }
-  handleOutgoing(msg: SnapMessage) {
+  handleProposerMessage(msg: SnapMessage) {
     switch (msg.msgType) {
       case SnapMessageType.Proposing:
         if (this.entries[msg.msgId] === undefined) {
@@ -99,7 +99,7 @@ export class HalfLedger {
         break;
     }
   }
-  handleIncoming(msg: SnapMessage) {
+  handleDeciderMessage(msg: SnapMessage) {
     switch (msg.msgType) {
       case SnapMessageType.Proposed:
         if (
