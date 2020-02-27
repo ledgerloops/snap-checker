@@ -14,8 +14,10 @@
     "@typescript-eslint/parser": "^2.21.0",
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^6.10.0",
+    "husky": "^4.2.3",
     "jest": "^25.1.0",
     "prettier": "^1.19.1",
+    "pretty-quick": "^2.0.1",
     "tsc": "^1.20150623.0",
     "typescript": "^3.8.2"
   },
@@ -33,6 +35,11 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/ledgerloops/snap/issues"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
   },
   "homepage": "https://ledgerloops.com"
 }
