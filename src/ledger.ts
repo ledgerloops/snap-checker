@@ -55,8 +55,8 @@ Ledger.prototype = {
     return this._msgLog;
   },
   getLowerPeers: function (limit) {
-    let list = [];
-    for (let peerName in this._balance) {
+    const list = [];
+    for (const peerName in this._balance) {
       // imagine all this peer's receivables succeed, and all his payables fail:
       const highestBalanceEstimate = this._balance[peerName].current + this._balance[peerName].receivable;
       if (highestBalanceEstimate < limit) {
@@ -66,8 +66,8 @@ Ledger.prototype = {
     return list.sort((a, b) => b[1] - a[1]); // lowest first
   },
   getHigherPeers: function (limit) {
-    let list = [];
-    for (let peerName in this._balance) {
+    const list = [];
+    for (const peerName in this._balance) {
       // imagine all this peer's receivables fail, and all his payables succeed:
       const lowestBalanceEstimate = this._balance[peerName].current - this._balance[peerName].payable;
       if (lowestBalanceEstimate > limit) {
@@ -116,7 +116,7 @@ Ledger.prototype = {
       default:
         // console.log(msgObj);
         throw new Error('unknown message type');
-    };
+    }
     if (!this._msgLog[`${proposer}-${beneficiary}`]) {
       this._msgLog[`${proposer}-${beneficiary}`] = {};
     }
@@ -130,7 +130,7 @@ Ledger.prototype = {
         'status': 'new',
       };
     }
-    let entry = this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId];
+    const entry = this._msgLog[`${proposer}-${beneficiary}`][msgObj.msgId];
     entry.messages.push(msgObj);
     if (response) { // ACCEPT, REJECT
       if (entry['status'] === 'pending') {

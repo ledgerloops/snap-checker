@@ -1,5 +1,5 @@
-var Ledger = require('../../src/ledger')
-var assert = require('assert')
+const Ledger = require('../../src/ledger')
+const assert = require('assert')
 // var sinon = require('sinon');
 
 describe('Ledger', function () {

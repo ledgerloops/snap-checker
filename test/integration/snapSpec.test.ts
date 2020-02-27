@@ -62,7 +62,7 @@ describe('Snap', function () {
       });
     });
     it('should resolve the loop', function (done) {
-      let timer = setInterval(() => {
+      const timer = setInterval(() => {
         let someoneStillBusy = false;
         ['Mia', 'Marsellus', 'Vincent'].map(agentName => {
           if (this.agents[agentName].busy > 0) {
