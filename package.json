@@ -7,11 +7,14 @@
     "test": "test"
   },
   "dependencies": {
+    "@babel/preset-env": "^7.8.4",
+    "@babel/preset-typescript": "^7.8.3",
     "hashlocks": "^1.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^2.21.0",
     "@typescript-eslint/parser": "^2.21.0",
+    "babel": "^6.23.0",
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^6.10.0",
     "husky": "^4.2.3",
