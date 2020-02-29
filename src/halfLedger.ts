@@ -53,8 +53,10 @@ export type LedgerEntry = {
 export class HalfLedger {
   entries: LedgerEntry[];
   max: number;
-  constructor() {
-    this.max = 0;
+  unit: string;
+  constructor(unit: string, max = 0) {
+    this.unit = unit;
+    this.max = max;
     this.entries = [];
   }
   handleProposerMessage(msg: SnapMessage) {
@@ -64,6 +66,10 @@ export class HalfLedger {
           // CHECK 1: only add a new proposal if it doesn't bring the total over max.
           if (msg.amount + this.getSum(true) > this.max) {
             throw new Error("Amount would bring total over max");
+          }
+          // CHECK 2: only deal with one unit
+          if (msg.unit !== this.unit) {
+            throw new Error("wrong unit!");
           }
           const trans: Transaction = {
             amount: msg.amount,
@@ -115,14 +121,14 @@ export class HalfLedger {
           (this.entries[msg.msgId].status === SnapMessageType.Proposing ||
             this.entries[msg.msgId].status === SnapMessageType.Proposed)
         ) {
-          // CHECK 2: only commit an accept of a conditional transaction if the preimage is given correctly
+          // CHECK 3: only commit an accept of a conditional transaction if the preimage is given correctly
           if (
             this.entries[msg.msgId].trans.condition &&
             hash(msg.preimage) !== this.entries[msg.msgId].trans.condition
           ) {
             return;
           }
-          // CHECK 3: only commit a transaction with expiresAt if that time hasn't passed yet
+          // CHECK 4: only commit a transaction with expiresAt if that time hasn't passed yet
           if (
             this.entries[msg.msgId].trans.expiresAt &&
             expired(this.entries[msg.msgId].trans.expiresAt)
@@ -143,20 +149,40 @@ export class HalfLedger {
         break;
     }
   }
-  getSum(includePending: boolean) {
+  getSum(
+    includePending: boolean,
+    includeAccepted: boolean = true,
+    includeRejected: boolean = false
+  ) {
+    const statusAccepted = SnapMessageType.Accepted;
+    const statusesPending = [
+      SnapMessageType.Proposing,
+      SnapMessageType.Proposed,
+      SnapMessageType.Rejecting,
+      SnapMessageType.Accepting
+    ];
+    const statusRejected = SnapMessageType.Rejected;
+
     let total = 0;
-    this.entries.forEach((currentEntry: LedgerEntry) => {
-      switch (currentEntry.status) {
-        case SnapMessageType.Proposing:
-        case SnapMessageType.Proposed:
-          if (includePending) {
-            total += currentEntry.trans.amount;
-          }
-          break;
-        case SnapMessageType.Accepting:
-        case SnapMessageType.Accepted:
-          total += currentEntry.trans.amount;
+    const entriesToInclude = this.entries.filter(
+      (currentEntry: LedgerEntry) => {
+        if (includeAccepted && currentEntry.status === statusAccepted) {
+          return true;
+        }
+
+        if (
+          includePending &&
+          statusesPending.indexOf(currentEntry.status) !== -1
+        ) {
+          return true;
+        }
+        if (includeRejected && currentEntry.status === statusRejected) {
+          return true;
+        }
       }
+    );
+    entriesToInclude.forEach((currentEntry: LedgerEntry) => {
+      total += currentEntry.trans.amount;
     });
     return total;
   }
