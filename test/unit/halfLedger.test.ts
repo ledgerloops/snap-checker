@@ -1,14 +1,13 @@
-import { HalfLedger, SnapMessageType } from "../../src/halfLedger";
+import { HalfLedger, SnapTransactionState } from "../../src/halfLedger";
 
 describe("HalfLedger", () => {
-  let halfLedger = new HalfLedger("some unit", 100);
+  let halfLedger = new HalfLedger(100);
 
   it("handles an unconditional transaction", () => {
     halfLedger.handleProposerMessage({
-      msgType: SnapMessageType.Proposing,
-      msgId: 0,
-      amount: 10,
-      unit: "some unit"
+      newState: SnapTransactionState.Proposing,
+      transId: 0,
+      amount: 10
     });
     expect(halfLedger.getSum(true)).toEqual(10);
   });

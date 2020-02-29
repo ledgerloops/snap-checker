@@ -1,11 +1,11 @@
 function hash(str: string) {
   return `hash-of-${str}`;
 }
-function expired(expiresAt: Date) {
-  return false;
+function expired(expiresAt: Date, sentAt: Date) {
+  return expiresAt > sentAt;
 }
 
-export enum SnapMessageType {
+export enum SnapTransactionState {
   Proposing,
   Proposed,
   Accepting,
@@ -28,11 +28,10 @@ export enum SnapMessageType {
 // msgId, msgType=Rejecting.
 // msgId, msgType=Rejected.
 
-export type SnapMessage = {
-  msgId: number;
-  msgType: SnapMessageType;
+export type StateTransition = {
+  transId: number;
+  newState: SnapTransactionState;
   amount?: number;
-  unit?: string;
   condition?: string;
   preimage?: string;
   expiresAt?: Date;
@@ -40,40 +39,34 @@ export type SnapMessage = {
 
 export type Transaction = {
   amount: number;
-  unit: string;
   condition?: string;
   expiresAt?: Date;
 };
 
 export type LedgerEntry = {
-  status: SnapMessageType;
+  status: SnapTransactionState;
   trans: Transaction;
 };
 
 export class HalfLedger {
   entries: LedgerEntry[];
+  start: number;
   max: number;
-  unit: string;
-  constructor(unit: string, max = 0) {
-    this.unit = unit;
+  constructor(start = 0, max = 0) {
+    this.start = start;
     this.max = max;
     this.entries = [];
   }
-  handleProposerMessage(msg: SnapMessage) {
-    switch (msg.msgType) {
-      case SnapMessageType.Proposing:
-        if (this.entries[msg.msgId] === undefined) {
+  handleProposerMessage(msg: StateTransition, time: Date) {
+    switch (msg.newState) {
+      case SnapTransactionState.Proposing:
+        if (this.entries[msg.transId] === undefined) {
           // CHECK 1: only add a new proposal if it doesn't bring the total over max.
           if (msg.amount + this.getSum(true) > this.max) {
             throw new Error("Amount would bring total over max");
           }
-          // CHECK 2: only deal with one unit
-          if (msg.unit !== this.unit) {
-            throw new Error("wrong unit!");
-          }
           const trans: Transaction = {
-            amount: msg.amount,
-            unit: msg.unit
+            amount: msg.amount
           };
           if (msg.condition) {
             trans.condition = msg.condition;
@@ -81,70 +74,72 @@ export class HalfLedger {
           if (msg.expiresAt) {
             trans.expiresAt = msg.expiresAt;
           }
-          this.entries[msg.msgId] = {
-            status: msg.msgType,
+          this.entries[msg.transId] = {
+            status: msg.newState,
             trans
           };
         }
         break;
-      case SnapMessageType.Accepted:
+      case SnapTransactionState.Accepted:
         if (
-          this.entries[msg.msgId] !== undefined &&
-          this.entries[msg.msgId].status === SnapMessageType.Accepting
+          this.entries[msg.transId] !== undefined &&
+          this.entries[msg.transId].status === SnapTransactionState.Accepting
         ) {
-          this.entries[msg.msgId].status = SnapMessageType.Accepted;
+          this.entries[msg.transId].status = SnapTransactionState.Accepted;
         }
         break;
-      case SnapMessageType.Rejected:
+      case SnapTransactionState.Rejected:
         if (
-          this.entries[msg.msgId] !== undefined &&
-          this.entries[msg.msgId].status === SnapMessageType.Rejecting
+          this.entries[msg.transId] !== undefined &&
+          this.entries[msg.transId].status === SnapTransactionState.Rejecting
         ) {
-          this.entries[msg.msgId].status = SnapMessageType.Rejected;
+          this.entries[msg.transId].status = SnapTransactionState.Rejected;
         }
         break;
     }
   }
-  handleDeciderMessage(msg: SnapMessage) {
-    switch (msg.msgType) {
-      case SnapMessageType.Proposed:
+  handleDeciderMessage(msg: StateTransition, time: Date) {
+    switch (msg.newState) {
+      case SnapTransactionState.Proposed:
         if (
-          this.entries[msg.msgId] !== undefined &&
-          this.entries[msg.msgId].status === SnapMessageType.Proposing
+          this.entries[msg.transId] !== undefined &&
+          this.entries[msg.transId].status === SnapTransactionState.Proposing
         ) {
-          this.entries[msg.msgId].status = SnapMessageType.Proposed;
+          this.entries[msg.transId].status = SnapTransactionState.Proposed;
         }
         break;
-      case SnapMessageType.Accepting:
+      case SnapTransactionState.Accepting:
         if (
-          this.entries[msg.msgId] !== undefined &&
-          (this.entries[msg.msgId].status === SnapMessageType.Proposing ||
-            this.entries[msg.msgId].status === SnapMessageType.Proposed)
+          this.entries[msg.transId] !== undefined &&
+          (this.entries[msg.transId].status ===
+            SnapTransactionState.Proposing ||
+            this.entries[msg.transId].status === SnapTransactionState.Proposed)
         ) {
           // CHECK 3: only commit an accept of a conditional transaction if the preimage is given correctly
           if (
-            this.entries[msg.msgId].trans.condition &&
-            hash(msg.preimage) !== this.entries[msg.msgId].trans.condition
+            this.entries[msg.transId].trans.condition &&
+            hash(msg.preimage) !== this.entries[msg.transId].trans.condition
           ) {
             return;
           }
           // CHECK 4: only commit a transaction with expiresAt if that time hasn't passed yet
           if (
-            this.entries[msg.msgId].trans.expiresAt &&
-            expired(this.entries[msg.msgId].trans.expiresAt)
+            this.entries[msg.transId].trans.expiresAt &&
+            expired(this.entries[msg.transId].trans.expiresAt, time)
           ) {
             return;
           }
-          this.entries[msg.msgId].status = SnapMessageType.Accepting;
+          this.entries[msg.transId].status = SnapTransactionState.Accepting;
         }
         break;
-      case SnapMessageType.Rejecting:
+      case SnapTransactionState.Rejecting:
         if (
-          this.entries[msg.msgId] !== undefined &&
-          (this.entries[msg.msgId].status === SnapMessageType.Proposing ||
-            this.entries[msg.msgId].status === SnapMessageType.Proposed)
+          this.entries[msg.transId] !== undefined &&
+          (this.entries[msg.transId].status ===
+            SnapTransactionState.Proposing ||
+            this.entries[msg.transId].status === SnapTransactionState.Proposed)
         ) {
-          this.entries[msg.msgId].status = SnapMessageType.Accepting;
+          this.entries[msg.transId].status = SnapTransactionState.Accepting;
         }
         break;
     }
@@ -154,16 +149,16 @@ export class HalfLedger {
     includeAccepted: boolean = true,
     includeRejected: boolean = false
   ) {
-    const statusAccepted = SnapMessageType.Accepted;
+    const statusAccepted = SnapTransactionState.Accepted;
     const statusesPending = [
-      SnapMessageType.Proposing,
-      SnapMessageType.Proposed,
-      SnapMessageType.Rejecting,
-      SnapMessageType.Accepting
+      SnapTransactionState.Proposing,
+      SnapTransactionState.Proposed,
+      SnapTransactionState.Rejecting,
+      SnapTransactionState.Accepting
     ];
-    const statusRejected = SnapMessageType.Rejected;
+    const statusRejected = SnapTransactionState.Rejected;
 
-    let total = 0;
+    let total = this.start;
     const entriesToInclude = this.entries.filter(
       (currentEntry: LedgerEntry) => {
         if (includeAccepted && currentEntry.status === statusAccepted) {
@@ -185,5 +180,8 @@ export class HalfLedger {
       total += currentEntry.trans.amount;
     });
     return total;
+  }
+  setMax(value: number) {
+    this.max = value;
   }
 }
