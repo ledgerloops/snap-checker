@@ -13,17 +13,27 @@ const proposerMessageTypes = [
 export class FullLedger {
   us: HalfLedger;
   them: HalfLedger;
+  ourTrust: number;
+  theirTrust: number;
   constructor(ourStart: number, theirStart: number) {
     this.us = new HalfLedger(ourStart);
     this.them = new HalfLedger(theirStart);
   }
   setOurTrust(value: number) {
+    this.ourTrust = value;
+    this.updateTheirMax();
+  }
+  updateTheirMax() {
     const ourTotal = this.us.getSum(false);
-    return this.them.setMax(value + ourTotal);
+    return this.them.setMax(this.ourTrust + ourTotal);
   }
   setTheirTrust(value: number) {
+    this.theirTrust = value;
+    this.updateOurMax();
+  }
+  updateOurMax() {
     const theirTotal = this.us.getSum(false);
-    return this.us.setMax(value + theirTotal);
+    return this.us.setMax(this.theirTrust + theirTotal);
   }
   getOurCurrent() {
     const ourReceived = this.them.getSum(false);
@@ -56,14 +66,22 @@ export class FullLedger {
     if (proposerMessageTypes.indexOf(stateTransition.newState) !== -1) {
       return this.us.handleProposerMessage(stateTransition, time);
     } else {
-      return this.them.handleDeciderMessage(stateTransition, time);
+      const ret = this.them.handleDeciderMessage(stateTransition, time);
+      if (stateTransition.newState === SnapTransactionState.Accepted) {
+        this.updateOurMax();
+      }
+      return ret;
     }
   }
   handleMessageWeReceive(stateTransition: StateTransition, time: Date) {
     if (proposerMessageTypes.indexOf(stateTransition.newState) !== -1) {
       return this.them.handleProposerMessage(stateTransition, time);
     } else {
-      return this.us.handleDeciderMessage(stateTransition, time);
+      const ret = this.us.handleDeciderMessage(stateTransition, time);
+      if (stateTransition.newState === SnapTransactionState.Accepted) {
+        this.updateTheirMax();
+      }
+      return ret;
     }
   }
 }
