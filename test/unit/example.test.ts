@@ -5,7 +5,9 @@ describe("Example", () => {
     const example = new Example();
     example.runExample();
     expect(example.redNode.getBalances("alice", "bob", "10E-3 USD")).toEqual({
-      current: -10
+      current: -10,
+      payable: 10,
+      receivable: 0
     });
   });
 });

@@ -30,6 +30,7 @@ export class SimplexWatcher {
         if (this.entries[msg.transId] === undefined) {
           // CHECK 1: only add a new proposal if it doesn't bring the total over max.
           if (msg.amount + this.getSum(true) > this.max) {
+            console.log(msg, this);
             throw new Error("Amount would bring total over max");
           }
           const trans: Transaction = {
@@ -150,6 +151,7 @@ export class SimplexWatcher {
     return total;
   }
   setMax(value: number): void {
+    console.log("setting max", value);
     this.max = value;
   }
 }

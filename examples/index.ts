@@ -11,17 +11,24 @@ export class Example {
   delay: number;
   unit: string;
   constructor() {
-    this.delay = 100; // ms
+    this.delay = 0; // ms
     this.unit = "10E-3 USD";
 
     this.redNode = new SnapServer(["alice"]);
     this.blueNode = new SnapServer(["bob"]);
 
-    [this.redNode, this.redNode].forEach(node => {
+    [this.redNode, this.blueNode].forEach(node => {
       node.logMessage({
         time: new Date(),
         from: "alice",
         to: "bob",
+        unit: this.unit,
+        newTrustLevel: 100
+      });
+      node.logMessage({
+        time: new Date(),
+        from: "bob",
+        to: "alice",
         unit: this.unit,
         newTrustLevel: 100
       });
