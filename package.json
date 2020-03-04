@@ -26,6 +26,7 @@
     "typescript": "^3.8.3"
   },
   "scripts": {
+    "coverage": "jest --collect-coverage",
     "jest": "jest",
     "test": "npm run lint && npm run jest",
     "lint": "eslint src/ test/ --ext .ts",
