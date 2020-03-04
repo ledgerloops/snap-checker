@@ -1,6 +1,6 @@
 {
   "name": "snap-server",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Synchronized Network Accounting Protocol",
   "main": "src/index.ts",
   "directories": {
