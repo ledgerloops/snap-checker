@@ -1,4 +1,4 @@
-import { SimplexWatcher } from "../../src/SimplexWatcher";
+import { SimplexWatcher } from "../../src/simplexWatcher";
 import { SnapTransactionState } from "../../src/snapTransaction";
 
 describe("SimplexWatcher", () => {
