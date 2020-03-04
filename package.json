@@ -19,6 +19,7 @@
     "babel": "^6.23.0",
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^6.10.0",
+    "eslint-plugin-prettier": "^3.1.2",
     "husky": "^4.2.3",
     "jest": "^25.1.0",
     "prettier": "^1.19.1",
@@ -29,7 +30,8 @@
     "jest": "jest",
     "test": "npm run lint && npm run jest",
     "lint": "eslint src/ test/ --ext .ts",
-    "build": "tsc src/**/*.ts --target ES6"
+    "build": "tsc src/**/*.ts --target ES6",
+    "prettier": "prettier"
   },
   "repository": {
     "type": "git",

@@ -1,8 +1,5 @@
-import {
-  HalfLedger,
-  SnapTransactionState,
-  StateTransition
-} from "./halfLedger";
+import { SimplexWatcher } from "./simplexWatcher";
+import { SnapTransactionState, StateTransition } from "./snapTransaction";
 
 const proposerMessageTypes = [
   SnapTransactionState.Proposing,
@@ -10,14 +7,14 @@ const proposerMessageTypes = [
   SnapTransactionState.Rejected
 ];
 
-export class FullLedger {
-  us: HalfLedger;
-  them: HalfLedger;
+export class ChannelWatcher {
+  us: SimplexWatcher;
+  them: SimplexWatcher;
   ourTrust: number;
   theirTrust: number;
   constructor(ourStart: number, theirStart: number) {
-    this.us = new HalfLedger(ourStart);
-    this.them = new HalfLedger(theirStart);
+    this.us = new SimplexWatcher(ourStart);
+    this.them = new SimplexWatcher(theirStart);
   }
   setOurTrust(value: number) {
     this.ourTrust = value;
