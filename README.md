@@ -3,13 +3,11 @@
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 [![Tests](https://api.travis-ci.org/ledgerloops/snap.svg?branch=master)](https://travis-ci.org/ledgerloops/snap)
 
-This is an implementation of [SNAP](protocol.md) based on [Hubbie](https://github.com/ledgerloops/hubbie) for messaging, and including [LedgerLoops](https://github.com/ledgerloops/ledgerloops) for cycle detection.
-
 NPM package: [snap-server](https://www.npmjs.com/package/snap-server)
 
 An implementation of the [Synchronized Network Accounting Protocol (SNAP)](http://michielbdejong.com/blog/20.html).
 
-Usage: see [example](https://github.com/ledgerloops/snap/blob/draft-half-ledgers/src/example.ts)
+Usage: see [example](https://github.com/ledgerloops/snap/blob/master/examples/basic.ts)
 
 The most basic unit is the Transaction:
 

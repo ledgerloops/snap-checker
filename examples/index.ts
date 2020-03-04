@@ -1,6 +1,6 @@
 import { sha256 } from "hashlocks";
-import { SnapServer } from "./snapServer";
-import { SnapTransactionState, StateTransition } from "./snapTransaction";
+import { SnapServer } from "../src/snapServer";
+import { SnapTransactionState, StateTransition } from "../src/snapTransaction";
 
 const preimage = "bla";
 const condition: string = sha256(preimage);
@@ -11,16 +11,21 @@ export class Example {
   delay: number;
   unit: string;
   constructor() {
-    this.redNode = new SnapServer(["alice"]);
-    this.redNode
-      .getChannelWatcher("alice", "bob", "10E-3 USD")
-      .setTheirTrust(100);
-    this.blueNode = new SnapServer(["bob"]);
-    this.blueNode
-      .getChannelWatcher("bob", "alice", "10E-3 USD")
-      .setOurTrust(100);
     this.delay = 100; // ms
     this.unit = "10E-3 USD";
+
+    this.redNode = new SnapServer(["alice"]);
+    this.blueNode = new SnapServer(["bob"]);
+
+    [this.redNode, this.redNode].forEach(node => {
+      node.logMessage({
+        time: new Date(),
+        from: "alice",
+        to: "bob",
+        unit: this.unit,
+        newTrustLevel: 100
+      });
+    });
   }
   simulateMessage(
     stateTransition: StateTransition,

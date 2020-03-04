@@ -2,7 +2,8 @@ import { ChannelWatcher } from "./channelWatcher";
 import { StateTransition } from "./snapTransaction";
 
 export type SnapMessageLogEntry = {
-  stateTransition: StateTransition;
+  stateTransition?: StateTransition;
+  newTrustLevel?: number;
   time: Date;
   from: string;
   to: string;
@@ -30,7 +31,9 @@ export class SnapServer {
   private getChannelWatcher(
     agentName: string,
     peerName: string,
-    unit: string
+    unit: string,
+    agentStart: number = 0,
+    peerStart: number = 0
   ): ChannelWatcher {
     if (!this.channelWatchers[agentName]) {
       // this.channelWatchers[agentName] = {};
@@ -41,8 +44,8 @@ export class SnapServer {
     }
     if (!this.channelWatchers[agentName][peerName][unit]) {
       this.channelWatchers[agentName][peerName][unit] = new ChannelWatcher(
-        0,
-        0
+        agentStart,
+        peerStart
       );
     }
     return this.channelWatchers[agentName][peerName][unit];
@@ -51,9 +54,36 @@ export class SnapServer {
   private isLocal(agentName: string): boolean {
     return typeof this.channelWatchers[agentName] !== "undefined";
   }
-
-  logMessage(msg: SnapMessageLogEntry): void {
-    this.msgLog.push(msg);
+  getBalances(agentName: string, peerName: string, unit: string) {
+    const channelWatcher = this.getChannelWatcher(agentName, peerName, unit);
+    return {
+      current: channelWatcher.getOurCurrent(),
+      payable: channelWatcher.getOurPayable(),
+      receivable: channelWatcher.getOurReceivable()
+    };
+  }
+  setStartBalance(
+    agentName: string,
+    peerName: string,
+    unit: string,
+    agentStart: number,
+    peerStart: number
+  ) {
+    this.getChannelWatcher(agentName, peerName, unit, agentStart, peerStart);
+  }
+  private processTrustChange(msg: SnapMessageLogEntry) {
+    if (this.isLocal(msg.from)) {
+      this.getChannelWatcher(msg.from, msg.to, msg.unit).setOurTrust(
+        msg.newTrustLevel
+      );
+    }
+    if (this.isLocal(msg.to)) {
+      this.getChannelWatcher(msg.to, msg.from, msg.unit).setTheirTrust(
+        msg.newTrustLevel
+      );
+    }
+  }
+  private processSnapMessage(msg: SnapMessageLogEntry): void {
     if (this.isLocal(msg.from)) {
       this.getChannelWatcher(msg.from, msg.to, msg.unit).handleMessageWeSend(
         msg.stateTransition,
@@ -65,6 +95,21 @@ export class SnapServer {
         msg.stateTransition,
         msg.time
       );
+    }
+  }
+  logMessage(msg: SnapMessageLogEntry): void {
+    if (
+      this.msgLog.length &&
+      msg.time < this.msgLog[this.msgLog.length - 1].time
+    ) {
+      throw new Error("Please log messages in chronological order");
+    }
+    this.msgLog.push(msg);
+    if (msg.stateTransition) {
+      return this.processSnapMessage(msg);
+    }
+    if (msg.newTrustLevel) {
+      return this.processTrustChange(msg);
     }
   }
 }
