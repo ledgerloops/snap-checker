@@ -1,14 +1,18 @@
-import { HalfLedger, SnapTransactionState } from "../../src/halfLedger";
+import { SimplexWatcher } from "../../src/SimplexWatcher";
+import { SnapTransactionState } from "../../src/snapTransaction";
 
-describe("HalfLedger", () => {
-  let halfLedger = new HalfLedger(100);
+describe("SimplexWatcher", () => {
+  let simplexWatcher = new SimplexWatcher(100);
 
   it("handles an unconditional transaction", () => {
-    halfLedger.handleProposerMessage({
-      newState: SnapTransactionState.Proposing,
-      transId: 0,
-      amount: 10
-    });
-    expect(halfLedger.getSum(true)).toEqual(10);
+    simplexWatcher.handleProposerMessage(
+      {
+        newState: SnapTransactionState.Proposing,
+        transId: 0,
+        amount: 10
+      },
+      new Date()
+    );
+    expect(simplexWatcher.getSum(true)).toEqual(10);
   });
 });

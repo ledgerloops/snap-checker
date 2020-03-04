@@ -31,7 +31,7 @@
     "test": "npm run lint && npm run jest",
     "lint": "eslint src/ test/ --ext .ts",
     "build": "tsc src/**/*.ts --target ES6",
-    "prettier": "prettier"
+    "prettier": "prettier --write \"{src,test,__mocks__}/**/*.ts\""
   },
   "repository": {
     "type": "git",
