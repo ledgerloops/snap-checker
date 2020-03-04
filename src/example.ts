@@ -1,21 +1,21 @@
 import { sha256 } from "hashlocks";
-import { SnapNode } from "./snapNode";
+import { SnapServer } from "./snapServer";
 import { SnapTransactionState, StateTransition } from "./snapTransaction";
 
 const preimage = "bla";
 const condition: string = sha256(preimage);
 
 export class Example {
-  redNode: SnapNode;
-  blueNode: SnapNode;
+  redNode: SnapServer;
+  blueNode: SnapServer;
   delay: number;
   unit: string;
   constructor() {
-    this.redNode = new SnapNode(["alice"]);
+    this.redNode = new SnapServer(["alice"]);
     this.redNode
       .getChannelWatcher("alice", "bob", "10E-3 USD")
       .setTheirTrust(100);
-    this.blueNode = new SnapNode(["bob"]);
+    this.blueNode = new SnapServer(["bob"]);
     this.blueNode
       .getChannelWatcher("bob", "alice", "10E-3 USD")
       .setOurTrust(100);
