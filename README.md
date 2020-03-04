@@ -5,103 +5,72 @@
 
 This is an implementation of [SNAP](protocol.md) based on [Hubbie](https://github.com/ledgerloops/hubbie) for messaging, and including [LedgerLoops](https://github.com/ledgerloops/ledgerloops) for cycle detection.
 
-NPM package: [networkledger](https://www.npmjs.com/package/networkledger)
+NPM package: [snap-server](https://www.npmjs.com/package/snap-server)
 
-Examples:
+An implementation of the [Synchronized Network Accounting Protocol (SNAP)](http://michielbdejong.com/blog/20.html).
 
-- in-browser: shows a graph of friends, you can tell friends to give each other money, and they will cooperate to find and resolve ledger loops. See the README in that folder for instructions.
-- client-server: example where Marsellus lives server-side, while Mia and Vincent live client-side. Shows and tests how WebSockets are used. See the README in that folder for instructions.
-- monetized-blog: static page, combined with a WebSocket server, that will accrue money when a user with the LedgerLoops browser extension visits this page. This demo is still under construction. See https://github.com/ledgerloops/ledgerloops/issues/21.
-- monetized-blog-heroku: Same as the previous demo, but running on Heroku instead of on localhost, and with the statics server rolled into the LedgerLoops agent server.
+Usage: see [example](https://github.com/ledgerloops/snap/blob/draft-half-ledgers/src/example.ts)
 
-- API
+The most basic unit is the Transaction:
 
-- LedgerLoops.Agent constructor (myName, mySecret, credsHandler)
+```ts
+type Transaction = {
+  amount: number;
+  condition?: string; // 32-byte hex sha256
+  expiresAt?: Date;
+};
+```
 
-  - myName and mySecret are used when connecting to a server
-  - credsHandler `({ peerName, peerSecret}) => Boolean` is called when someone else connects as a client
+Transactions go through state transitions:
 
-- Agent#addClient: function(options) {
-  return this.hubbie.addClient(Object.assign({
-  myName: this.\_myName,
-  mySecret: this.\_mySecret,
-  protocols: [ LEDGERLOOPS_PROTOCOL_VERSION ]
-  }, options));
-  }
+```ts
+type StateTransition = {
+  transId: number;
+  newState: SnapTransactionState;
+  amount?: number;
+  condition?: string;
+  preimage?: string;
+  expiresAt?: Date;
+};
+```
 
-- Agent#listen: function (options) {
-  return this.hubbie.listen(Object.assign({
-  protocolName: LEDGERLOOPS_PROTOCOL_VERSION
-  }, options));
-  }
+Valid combinations:
 
-- Agent#addTransaction: function (peerName, amount)
-  return this.\_propose(peerName, amount);
-  }
+- Proposer -> Decider: `transId`, `newState=Proposing`, `amount`, `unit`.
+- Proposer -> Decider: `transId`, `newState=Proposing`, `amount`, `unit`, `condition`.
+- Proposer -> Decider: `transId`, `newState=Proposing`, `amount`, `unit`, `expiresAt`.
+- Proposer -> Decider: `transId`, `newState=Proposing`, `amount`, `unit`, `condition`, `expiresAt`.
+- Proposer <- Decider: `transId`, `newState=Proposed`.
 
-- Agent#getBalance ()
-  - returns a hash with the bank's current, payable, receivable balances.
+- Proposer <- Decider: `transId`, `newState=Accepting` (if the Propose did not have a condition).
+- Proposer <- Decider: `transId`, `newState=Accepting`, `preimage` (if the Propose did have a condition).
+- Proposer -> Decider: `transId`, `newState=Accepted`.
 
-# \* Agent#payIntoNetwork(peerName, value)
+- Proposer <- Decider: `transId`, `newState=Rejecting`.
+- Proposer -> Decider: `transId`, `newState=Rejected`.
 
-# \* instruct the Loops engine to use your balance from the account with that peer to pay into the network
+A `SimplexWatcher` will watch the transactions from one specific proposer to one specific decider in one specific currency.
+It can report the sum of all transactions, including/excluding all committed, pending, and rejected transactions, respectively.
+It will throw an error if:
 
-#
+- a transaction will make the sum of committed + pending transactions go over the max,
+- a transaction is accepted after it has expired, or
+- a transaction is accepted without satisfying its condition.
 
-# \* Agent#receiveFromNetwork(peerName, value)
+A `ChannelWatcher` combines two `SimplexWatcher`s into a duplex channel. It takes two trust levels and adaptively sets the max of each
+`SimplexWatcher` as transactions go back and forth. It can report on current, payable, and receivable balance.
 
-# \* instruct the Loops engine to use the account with that peer to receive balance from the network
+A `SnapServer` combines an append-only message log with one `ChannelWatcher` per combination of (sender, receiver, unit).
+It has one public method, `logMessage`, which takes a log entry of the following type:
 
-Messages and their fields when on the wire:
+```ts
+type SnapMessageLogEntry = {
+  stateTransition: StateTransition;
+  time: Date;
+  from: string;
+  to: string;
+  unit: string;
+};
+```
 
-### Network Ledger Messages
-
-The following set of messages is an evolution of the Synchronized Network Accounting Protocol (SNAP), as originally invented by my colleague Bob Way at Ripple.
-
-- PROPOSE (request)
-  - msgType: 'PROPOSE'
-  - msgId: integer
-  - condition: <256 bits in a lower-case hex string> (optional)
-  - beneficiary: 'you' or 'me'
-  - amount: integer
-  - unit: 'UCR'
-  - routeId: String (optional)
-  - note: String (optional)
-
-PROPOSE requests can be resent idempotently until a response is received:
-
-- ACCEPT (response)
-
-  - msgType: 'ACCEPT'
-  - msgId: integer
-  - preimage: <256 bits in lower-case hex format> (if the request had a condition)
-
-- REJECT (response)
-  - msgType: 'REJECT'
-  - msgId: integer
-  - reason: String (optional)
-
-The receiver decides whether the sender's proposal gets accepted onto the ledger or not.
-These messages can be sent on a bi-directional messaging channel. Both parties have three balances: current, payable, and receivable.
-All balances of both parties start at zero. When a proposal is sent, the amount is added to the sender's payable balance, and to the
-receiver's receivable balance. When it's accepted the amount is deducted from the sender's payable and current balances. For the receiver,
-the amount is moved from receivable to current. If a proposal is rejected, the money is just deducted from sender's payable and from
-receiver's receivable, without affecting their current balances. The two current balances always add up to zero. And one party's payable
-balance is always equal to the party's receivable balance.
-If Bob disappears, Alice would lose at least her own current-payable balance, and at most her own current+receivable balance.
-Discrepancies can exist where Bob has marked one of Alice's proposal as accepted or rejected, but the response message doesn't reach Alice successfully. In that case, Alice would repeat her request indefinitely until a valid response from Bob arrives.
-Proposals may have negative amounts, meaning they are essentially pull payments instead of regular ledger transfers.
-
-## LedgerLoops control messages
-
-- PLEASE-FINALIZE
-
-  - protocol: 'ledgerloops-0.8'
-  - msgType: 'PLEASE-FINALIZE'
-  - msgId: integer
-
-- PROBES
-  - protocol: 'ledgerloops-0.8'
-  - msgType: 'PROBES'
-  - cwise: Array of 64-bit lower-case hex strings
-  - fwise: Array of 64-bit lower-case hex strings
+You can replay a historical message log through a SnapServer and it will arrive at the same combination of balances for each combination of (sender, receiver, unit). FIXME: https://github.com/ledgerloops/snap/issues/65

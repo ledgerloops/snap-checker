@@ -27,7 +27,7 @@ export class SnapServer {
     });
   }
 
-  getChannelWatcher(
+  private getChannelWatcher(
     agentName: string,
     peerName: string,
     unit: string
@@ -48,7 +48,7 @@ export class SnapServer {
     return this.channelWatchers[agentName][peerName][unit];
   }
 
-  isLocal(agentName: string): boolean {
+  private isLocal(agentName: string): boolean {
     return typeof this.channelWatchers[agentName] !== "undefined";
   }
 

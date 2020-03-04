@@ -8,18 +8,18 @@ export enum SnapTransactionState {
 }
 
 // VALID combinations:
-// msgId, msgType=Proposing, amount, unit.
-// msgId, msgType=Proposing, amount, unit, condition.
-// msgId, msgType=Proposing, amount, unit, expiresAt.
-// msgId, msgType=Proposing, amount, unit, condition, expiresAt.
-// msgId, msgType=Proposed.
+// transId, newState=Proposing, amount, unit.
+// transId, newState=Proposing, amount, unit, condition.
+// transId, newState=Proposing, amount, unit, expiresAt.
+// transId, newState=Proposing, amount, unit, condition, expiresAt.
+// transId, newState=Proposed.
 
-// msgId, msgType=Accepting. (if the Propose did not have a condition).
-// msgId, msgType=Accepting, preimage. (if the Propose did have a condition).
-// msgId, msgType=Accepted.
+// transId, newState=Accepting. (if the Propose did not have a condition).
+// transId, newState=Accepting, preimage. (if the Propose did have a condition).
+// transId, newState=Accepted.
 
-// msgId, msgType=Rejecting.
-// msgId, msgType=Rejected.
+// transId, newState=Rejecting.
+// transId, newState=Rejected.
 
 export type StateTransition = {
   transId: number;

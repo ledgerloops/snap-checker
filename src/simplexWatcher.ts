@@ -83,14 +83,14 @@ export class SimplexWatcher {
             SnapTransactionState.Proposing ||
             this.entries[msg.transId].status === SnapTransactionState.Proposed)
         ) {
-          // CHECK 3: only commit an accept of a conditional transaction if the preimage is given correctly
+          // CHECK 2: only commit an accept of a conditional transaction if the preimage is given correctly
           if (
             this.entries[msg.transId].trans.condition &&
             sha256(msg.preimage) !== this.entries[msg.transId].trans.condition
           ) {
             return;
           }
-          // CHECK 4: only commit a transaction with expiresAt if that time hasn't passed yet
+          // CHECK 3: only commit a transaction with expiresAt if that time hasn't passed yet
           if (
             this.entries[msg.transId].trans.expiresAt &&
             expired(this.entries[msg.transId].trans.expiresAt, time)
