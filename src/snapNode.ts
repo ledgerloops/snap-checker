@@ -49,7 +49,7 @@ export class SnapNode {
   }
 
   isLocal(agentName: string): boolean {
-    return typeof this.channelWatchers[agentName] !== undefined;
+    return typeof this.channelWatchers[agentName] !== "undefined";
   }
 
   logMessage(msg: SnapMessageLogEntry): void {
