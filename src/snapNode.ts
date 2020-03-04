@@ -27,7 +27,11 @@ export class SnapNode {
     });
   }
 
-  getChannelWatcher(agentName: string, peerName: string, unit: string) {
+  getChannelWatcher(
+    agentName: string,
+    peerName: string,
+    unit: string
+  ): ChannelWatcher {
     if (!this.channelWatchers[agentName]) {
       // this.channelWatchers[agentName] = {};
       throw new Error("Agent not local! " + agentName);
@@ -44,13 +48,12 @@ export class SnapNode {
     return this.channelWatchers[agentName][peerName][unit];
   }
 
-  isLocal(agentName: string) {
+  isLocal(agentName: string): boolean {
     return typeof this.channelWatchers[agentName] !== undefined;
   }
 
-  logMessage(msg: SnapMessageLogEntry) {
+  logMessage(msg: SnapMessageLogEntry): void {
     this.msgLog.push(msg);
-    let peerName;
     if (this.isLocal(msg.from)) {
       this.getChannelWatcher(msg.from, msg.to, msg.unit).handleMessageWeSend(
         msg.stateTransition,

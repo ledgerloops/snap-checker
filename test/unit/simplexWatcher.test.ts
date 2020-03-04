@@ -2,7 +2,7 @@ import { SimplexWatcher } from "../../src/SimplexWatcher";
 import { SnapTransactionState } from "../../src/snapTransaction";
 
 describe("SimplexWatcher", () => {
-  let simplexWatcher = new SimplexWatcher(100);
+  const simplexWatcher = new SimplexWatcher(100);
 
   it("handles an unconditional transaction", () => {
     simplexWatcher.handleProposerMessage(

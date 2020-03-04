@@ -28,7 +28,7 @@ export class Example {
     toNode: string,
     from: string,
     to: string
-  ) {
+  ): void {
     const msNow = new Date().getTime();
     this[fromNode].logMessage({
       time: new Date(msNow),
@@ -45,7 +45,11 @@ export class Example {
       stateTransition
     });
   }
-  simulateProposing(amount: number, condition?: string, expiresAt?: Date) {
+  simulateProposing(
+    amount: number,
+    condition?: string,
+    expiresAt?: Date
+  ): void {
     this.simulateMessage(
       {
         transId: 0,
@@ -60,7 +64,7 @@ export class Example {
       "bob"
     );
   }
-  simulateProposed() {
+  simulateProposed(): void {
     const stateTransition: StateTransition = {
       transId: 0,
       newState: SnapTransactionState.Proposed
@@ -73,7 +77,7 @@ export class Example {
       "alice"
     );
   }
-  simulateAccepting() {
+  simulateAccepting(): void {
     const stateTransition: StateTransition = {
       transId: 0,
       newState: SnapTransactionState.Accepting
@@ -86,7 +90,7 @@ export class Example {
       "bob"
     );
   }
-  simulateAccepted() {
+  simulateAccepted(): void {
     const stateTransition: StateTransition = {
       transId: 0,
       newState: SnapTransactionState.Accepted
@@ -99,7 +103,7 @@ export class Example {
       "bob"
     );
   }
-  runExample() {
+  runExample(): void {
     this.simulateProposing(10, condition);
     this.simulateProposed();
     this.simulateAccepting();

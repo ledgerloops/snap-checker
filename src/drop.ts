@@ -1,2 +1,2 @@
 import { SnapNode } from "./snapNode";
-((window as unknown) as any).SnapNode = SnapNode;
+(window as any).SnapNode = SnapNode; // eslint-disable-line @typescript-eslint/no-explicit-any

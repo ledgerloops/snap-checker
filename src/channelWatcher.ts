@@ -16,45 +16,45 @@ export class ChannelWatcher {
     this.us = new SimplexWatcher(ourStart);
     this.them = new SimplexWatcher(theirStart);
   }
-  setOurTrust(value: number) {
+  setOurTrust(value: number): void {
     this.ourTrust = value;
     this.updateTheirMax();
   }
-  updateTheirMax() {
+  updateTheirMax(): void {
     const ourTotal = this.us.getSum(false);
     return this.them.setMax(this.ourTrust + ourTotal);
   }
-  setTheirTrust(value: number) {
+  setTheirTrust(value: number): void {
     this.theirTrust = value;
     this.updateOurMax();
   }
-  updateOurMax() {
+  updateOurMax(): void {
     const theirTotal = this.us.getSum(false);
     return this.us.setMax(this.theirTrust + theirTotal);
   }
-  getOurCurrent() {
+  getOurCurrent(): number {
     const ourReceived = this.them.getSum(false);
     const ourUsed = this.us.getSum(true);
     return ourReceived - ourUsed;
   }
-  getTheirCurrent() {
+  getTheirCurrent(): number {
     const theirReceived = this.us.getSum(false);
     const theirUsed = this.them.getSum(true);
     return theirReceived - theirUsed;
   }
-  getOurPayable() {
+  getOurPayable(): number {
     return this.us.getSum(true, false);
   }
-  getTheirPayable() {
+  getTheirPayable(): number {
     return this.them.getSum(true, false);
   }
-  getOurReceivable() {
+  getOurReceivable(): number {
     return this.getTheirPayable();
   }
-  getTheirReceivable() {
+  getTheirReceivable(): number {
     return this.getOurPayable();
   }
-  handleMessageWeSend(stateTransition: StateTransition, time: Date) {
+  handleMessageWeSend(stateTransition: StateTransition, time: Date): void {
     const proposerMessageTypes = [
       SnapTransactionState.Proposing,
       SnapTransactionState.Accepted,
@@ -70,7 +70,7 @@ export class ChannelWatcher {
       return ret;
     }
   }
-  handleMessageWeReceive(stateTransition: StateTransition, time: Date) {
+  handleMessageWeReceive(stateTransition: StateTransition, time: Date): void {
     if (proposerMessageTypes.indexOf(stateTransition.newState) !== -1) {
       return this.them.handleProposerMessage(stateTransition, time);
     } else {

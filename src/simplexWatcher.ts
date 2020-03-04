@@ -5,13 +5,14 @@ import {
   StateTransition
 } from "./snapTransaction";
 
-function expired(expiresAt: Date, sentAt: Date) {
+function expired(expiresAt: Date, sentAt: Date): boolean {
   return expiresAt > sentAt;
 }
 
 export type LedgerEntry = {
   status: SnapTransactionState;
   trans: Transaction;
+  time: Date;
 };
 
 export class SimplexWatcher {
@@ -23,7 +24,7 @@ export class SimplexWatcher {
     this.max = max;
     this.entries = [];
   }
-  handleProposerMessage(msg: StateTransition, time: Date) {
+  handleProposerMessage(msg: StateTransition, time: Date): void {
     switch (msg.newState) {
       case SnapTransactionState.Proposing:
         if (this.entries[msg.transId] === undefined) {
@@ -42,7 +43,8 @@ export class SimplexWatcher {
           }
           this.entries[msg.transId] = {
             status: msg.newState,
-            trans
+            trans,
+            time
           };
         }
         break;
@@ -64,7 +66,7 @@ export class SimplexWatcher {
         break;
     }
   }
-  handleDeciderMessage(msg: StateTransition, time: Date) {
+  handleDeciderMessage(msg: StateTransition, time: Date): void {
     switch (msg.newState) {
       case SnapTransactionState.Proposed:
         if (
@@ -112,9 +114,9 @@ export class SimplexWatcher {
   }
   getSum(
     includePending: boolean,
-    includeAccepted: boolean = true,
-    includeRejected: boolean = false
-  ) {
+    includeAccepted = true,
+    includeRejected = false
+  ): number {
     const statusAccepted = SnapTransactionState.Accepted;
     const statusesPending = [
       SnapTransactionState.Proposing,
@@ -147,7 +149,7 @@ export class SimplexWatcher {
     });
     return total;
   }
-  setMax(value: number) {
+  setMax(value: number): void {
     this.max = value;
   }
 }
