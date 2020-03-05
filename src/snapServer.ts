@@ -10,6 +10,12 @@ export type SnapMessageLogEntry = {
   unit: string;
 };
 
+export type Balances = {
+  current: number;
+  payable: number;
+  receivable: number;
+};
+
 export class SnapServer {
   msgLog: SnapMessageLogEntry[];
   channelWatchers: {
@@ -32,8 +38,8 @@ export class SnapServer {
     agentName: string,
     peerName: string,
     unit: string,
-    agentStart: number = 0,
-    peerStart: number = 0
+    agentStart = 0,
+    peerStart = 0
   ): ChannelWatcher {
     if (!this.channelWatchers[agentName]) {
       // this.channelWatchers[agentName] = {};
@@ -71,7 +77,7 @@ export class SnapServer {
   private isLocal(agentName: string): boolean {
     return typeof this.channelWatchers[agentName] !== "undefined";
   }
-  getBalances(agentName: string, peerName: string, unit: string) {
+  getBalances(agentName: string, peerName: string, unit: string): Balances {
     const channelWatcher = this.getChannelWatcher(agentName, peerName, unit);
     return {
       current: channelWatcher.getOurCurrent(),
@@ -85,10 +91,10 @@ export class SnapServer {
     unit: string,
     agentStart: number,
     peerStart: number
-  ) {
+  ): void {
     this.getChannelWatcher(agentName, peerName, unit, agentStart, peerStart);
   }
-  private processTrustChange(msg: SnapMessageLogEntry) {
+  private processTrustChange(msg: SnapMessageLogEntry): void {
     if (this.isLocal(msg.from)) {
       console.log(
         "set our trust",

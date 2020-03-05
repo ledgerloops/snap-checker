@@ -1,1 +1,1 @@
-{"version":3,"file":"drop.js","sourceRoot":"","sources":["../src/drop.ts"],"names":[],"mappings":";IAEE,MAAc,CAAC,WAAW,GAAG,EAAE,QAAA,eAAM,EAAE,CAAA,CAAC,qCAAqC"}
+{"version":3,"sources":["../src/drop.ts"],"names":["window","SnapNode","SnapServer"],"mappings":";;AAAA;;AACCA,MAAD,CAAgBC,QAAhB,GAA2BC,sBAA3B,C,CAAuC","sourcesContent":["import { SnapServer } from \"./snapServer\";\n(window as any).SnapNode = SnapServer; // eslint-disable-line @typescript-eslint/no-explicit-any\n"],"file":"drop.js"}
