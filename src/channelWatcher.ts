@@ -22,7 +22,7 @@ export class ChannelWatcher {
   }
   updateTheirMax(): void {
     const ourTotal = this.us.getSum(false);
-    console.log("updateTheirMax", this.ourTrust, ourTotal);
+    // console.log("updateTheirMax", this.ourTrust, ourTotal);
     return this.them.setMax(this.ourTrust + ourTotal);
   }
   setTheirTrust(value: number): void {
@@ -31,7 +31,7 @@ export class ChannelWatcher {
   }
   updateOurMax(): void {
     const theirTotal = this.us.getSum(false);
-    console.log("updateOurMax", this.theirTrust, theirTotal);
+    // console.log("updateOurMax", this.theirTrust, theirTotal);
     return this.us.setMax(this.theirTrust + theirTotal);
   }
   getOurCurrent(): number {

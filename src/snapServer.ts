@@ -49,28 +49,28 @@ export class SnapServer {
       this.channelWatchers[agentName][peerName] = {};
     }
     if (!this.channelWatchers[agentName][peerName][unit]) {
-      console.log(
-        "creating channel watcher",
-        agentName,
-        peerName,
-        unit,
-        agentStart,
-        peerStart
-      );
+      // console.log(
+      //   "creating channel watcher",
+      //   agentName,
+      //   peerName,
+      //   unit,
+      //   agentStart,
+      //   peerStart
+      // );
       this.channelWatchers[agentName][peerName][unit] = new ChannelWatcher(
         agentStart,
         peerStart
       );
     }
-    console.log(
-      "returning channel watcher",
-      agentName,
-      peerName,
-      unit,
-      agentStart,
-      peerStart,
-      this.channelWatchers[agentName][peerName][unit]
-    );
+    // console.log(
+    //   "returning channel watcher",
+    //   agentName,
+    //   peerName,
+    //   unit,
+    //   agentStart,
+    //   peerStart,
+    //   this.channelWatchers[agentName][peerName][unit]
+    // );
     return this.channelWatchers[agentName][peerName][unit];
   }
 
@@ -96,25 +96,25 @@ export class SnapServer {
   }
   private processTrustChange(msg: SnapMessageLogEntry): void {
     if (this.isLocal(msg.from)) {
-      console.log(
-        "set our trust",
-        msg.from,
-        msg.to,
-        msg.unit,
-        msg.newTrustLevel
-      );
+      // console.log(
+      //   "set our trust",
+      //   msg.from,
+      //   msg.to,
+      //   msg.unit,
+      //   msg.newTrustLevel
+      // );
       this.getChannelWatcher(msg.from, msg.to, msg.unit).setOurTrust(
         msg.newTrustLevel
       );
     }
     if (this.isLocal(msg.to)) {
-      console.log(
-        "set their trust",
-        msg.to,
-        msg.from,
-        msg.unit,
-        msg.newTrustLevel
-      );
+      // console.log(
+      //   "set their trust",
+      //   msg.to,
+      //   msg.from,
+      //   msg.unit,
+      //   msg.newTrustLevel
+      // );
       this.getChannelWatcher(msg.to, msg.from, msg.unit).setTheirTrust(
         msg.newTrustLevel
       );

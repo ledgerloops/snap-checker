@@ -151,7 +151,7 @@ export class SimplexWatcher {
     return total;
   }
   setMax(value: number): void {
-    console.log("setting max", value);
+    // console.log("setting max", value);
     this.max = value;
   }
 }
