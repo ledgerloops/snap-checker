@@ -3,7 +3,7 @@
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 [![Tests](https://api.travis-ci.org/ledgerloops/snap.svg?branch=master)](https://travis-ci.org/ledgerloops/snap)
 
-NPM package: [snap-server](https://www.npmjs.com/package/snap-server)
+NPM package: [snap-checker](https://www.npmjs.com/package/snap-checker)
 
 An implementation of the [Synchronized Network Accounting Protocol (SNAP)](http://michielbdejong.com/blog/20.html).
 
