@@ -1,6 +1,6 @@
 {
   "name": "snap-checker",
-  "version": "0.10.2",
+  "version": "1.0.0",
   "description": "Synchronized Network Accounting Protocol",
   "main": "src/index.ts",
   "directories": {
