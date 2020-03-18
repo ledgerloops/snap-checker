@@ -58,8 +58,8 @@ It will throw an error if:
 A `ChannelWatcher` combines two `SimplexWatcher`s into a duplex channel. It takes two trust levels and adaptively sets the max of each
 `SimplexWatcher` as transactions go back and forth. It can report on current, payable, and receivable balance.
 
-A `SnapServer` combines an append-only message log with one `ChannelWatcher` per combination of (sender, receiver, unit).
-It has one public method, `logMessage`, which takes a log entry of the following type:
+A `SnapChecker` combines an append-only message log with one `ChannelWatcher` per combination of (sender, receiver, unit).
+It has one public method, `processMessage`, which takes a log entry of the following type:
 
 ```ts
 type SnapMessageLogEntry = {
@@ -71,4 +71,4 @@ type SnapMessageLogEntry = {
 };
 ```
 
-You can replay a historical message log through a SnapServer and it will arrive at the same combination of balances for each combination of (sender, receiver, unit). FIXME: https://github.com/ledgerloops/snap/issues/65
+You can replay a historical message log through a SnapChecker and it will arrive at the same combination of balances for each combination of (sender, receiver, unit). FIXME: https://github.com/ledgerloops/snap/issues/65

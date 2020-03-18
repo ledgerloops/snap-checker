@@ -16,7 +16,7 @@ export type Balances = {
   receivable: number;
 };
 
-export class SnapServer {
+export class SnapChecker {
   msgLog: SnapMessageLogEntry[];
   channelWatchers: {
     [agentName: string]: {
@@ -134,7 +134,7 @@ export class SnapServer {
       );
     }
   }
-  logMessage(msg: SnapMessageLogEntry): void {
+  processMessage(msg: SnapMessageLogEntry): void {
     if (
       this.msgLog.length &&
       msg.time < this.msgLog[this.msgLog.length - 1].time

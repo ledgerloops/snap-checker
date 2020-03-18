@@ -1,2 +1,2 @@
-import { SnapServer } from "./snapServer";
-(window as any).SnapNode = SnapServer; // eslint-disable-line @typescript-eslint/no-explicit-any
+import { SnapChecker } from "./SnapChecker";
+(window as any).SnapNode = SnapChecker; // eslint-disable-line @typescript-eslint/no-explicit-any

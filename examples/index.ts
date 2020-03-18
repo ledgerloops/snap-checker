@@ -1,31 +1,31 @@
 import { sha256 } from "hashlocks";
-import { SnapServer } from "../src/snapServer";
+import { SnapChecker } from "../src/SnapChecker";
 import { SnapTransactionState, StateTransition } from "../src/snapTransaction";
 
 const preimage = "bla";
 const condition: string = sha256(preimage);
 
 export class Example {
-  redNode: SnapServer;
-  blueNode: SnapServer;
+  redNode: SnapChecker;
+  blueNode: SnapChecker;
   delay: number;
   unit: string;
   constructor() {
     this.delay = 0; // ms
     this.unit = "10E-3 USD";
 
-    this.redNode = new SnapServer(["alice"]);
-    this.blueNode = new SnapServer(["bob"]);
+    this.redNode = new SnapChecker(["alice"]);
+    this.blueNode = new SnapChecker(["bob"]);
 
     [this.redNode, this.blueNode].forEach(node => {
-      node.logMessage({
+      node.processMessage({
         time: new Date(),
         from: "alice",
         to: "bob",
         unit: this.unit,
         newTrustLevel: 100
       });
-      node.logMessage({
+      node.processMessage({
         time: new Date(),
         from: "bob",
         to: "alice",
@@ -42,14 +42,14 @@ export class Example {
     to: string
   ): void {
     const msNow = new Date().getTime();
-    this[fromNode].logMessage({
+    this[fromNode].processMessage({
       time: new Date(msNow),
       from,
       to,
       unit: this.unit,
       stateTransition
     });
-    this[toNode].logMessage({
+    this[toNode].processMessage({
       time: new Date(msNow + this.delay),
       from,
       to,
