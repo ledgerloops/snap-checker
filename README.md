@@ -71,4 +71,4 @@ type SnapMessageLogEntry = {
 };
 ```
 
-You can replay a historical message log through a SnapChecker and it will arrive at the same combination of balances for each combination of (sender, receiver, unit). FIXME: https://github.com/ledgerloops/snap/issues/65
+You can replay a historical message log through a SnapChecker and it will arrive at the same combination of balances for each combination of (sender, receiver, unit).

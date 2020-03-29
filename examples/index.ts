@@ -89,10 +89,11 @@ export class Example {
       "alice"
     );
   }
-  simulateAccepting(): void {
+  simulateAccepting(preimage: string): void {
     const stateTransition: StateTransition = {
       transId: 0,
-      newState: SnapTransactionState.Accepting
+      newState: SnapTransactionState.Accepting,
+      preimage
     };
     this.simulateMessage(
       stateTransition,
@@ -118,7 +119,7 @@ export class Example {
   runExample(): void {
     this.simulateProposing(10, condition);
     this.simulateProposed();
-    this.simulateAccepting();
+    this.simulateAccepting(preimage);
     this.simulateAccepted();
   }
 }
