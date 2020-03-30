@@ -9,7 +9,9 @@
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "scripts": {
-    "build": "babel src -d lib --source-maps --extensions \".ts\"",
+    "build-lib": "babel src -d lib --source-maps --extensions \".ts\"",
+    "build-types": "tsc",
+    "build": "npm run build-lib && npm run build-types",
     "coverage": "jest --collect-coverage",
     "dev": "ts-node-dev src/examples/basic",
     "jest": "jest",

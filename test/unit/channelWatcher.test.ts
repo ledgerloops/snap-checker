@@ -1,13 +1,14 @@
 import { ChannelWatcher } from "../../src/channelWatcher";
 
 describe("ChannelWatcher", () => {
+  let channelWatcher: ChannelWatcher;
   beforeEach(function() {
     // function ChannelWatcher (peerNick, myNick, unit, handler, medium) {
-    this.ChannelWatcher = new ChannelWatcher(0, 0); //, {}, { addChannel: () => {} })
+    channelWatcher = new ChannelWatcher(0, 0); //, {}, { addChannel: () => {} })
   });
-  describe("ChannelWatcher#create", () => {
+  describe("ChannelWatcher#setOurTrust", () => {
     it.skip("should exist", () => {
-      expect(typeof this.ChannelWatcher.create).toEqual("function");
+      expect(typeof channelWatcher.setOurTrust).toEqual("function");
     });
   });
 });

@@ -15,6 +15,8 @@ export class ChannelWatcher {
   constructor(ourStart: number, theirStart: number) {
     this.us = new SimplexWatcher(ourStart);
     this.them = new SimplexWatcher(theirStart);
+    this.ourTrust = 0;
+    this.theirTrust = 0;
   }
   setOurTrust(value: number): void {
     this.ourTrust = value;

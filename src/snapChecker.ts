@@ -104,7 +104,7 @@ export class SnapChecker {
       //   msg.newTrustLevel
       // );
       this.getChannelWatcher(msg.from, msg.to, msg.unit).setOurTrust(
-        msg.newTrustLevel
+        msg.newTrustLevel as number
       );
     }
     if (this.isLocal(msg.to)) {
@@ -116,20 +116,20 @@ export class SnapChecker {
       //   msg.newTrustLevel
       // );
       this.getChannelWatcher(msg.to, msg.from, msg.unit).setTheirTrust(
-        msg.newTrustLevel
+        msg.newTrustLevel as number
       );
     }
   }
   private processSnapMessage(msg: SnapMessageLogEntry): void {
     if (this.isLocal(msg.from)) {
       this.getChannelWatcher(msg.from, msg.to, msg.unit).handleMessageWeSend(
-        msg.stateTransition,
+        msg.stateTransition as StateTransition,
         msg.time
       );
     }
     if (this.isLocal(msg.to)) {
       this.getChannelWatcher(msg.to, msg.from, msg.unit).handleMessageWeReceive(
-        msg.stateTransition,
+        msg.stateTransition as StateTransition,
         msg.time
       );
     }

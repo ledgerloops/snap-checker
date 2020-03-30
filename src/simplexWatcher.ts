@@ -2,7 +2,8 @@ import { sha256 } from "hashlocks";
 import {
   SnapTransactionState,
   Transaction,
-  StateTransition
+  StateTransition,
+  checkStateTransitionIsValid
 } from "./SnapTransaction";
 
 function expired(expiresAt: Date, sentAt: Date): boolean {
@@ -25,16 +26,17 @@ export class SimplexWatcher {
     this.entries = [];
   }
   handleProposerMessage(msg: StateTransition, time: Date): void {
+    checkStateTransitionIsValid(msg);
     switch (msg.newState) {
       case SnapTransactionState.Proposing:
         if (this.entries[msg.transId] === undefined) {
           // CHECK 1: only add a new proposal if it doesn't bring the total over max.
-          if (msg.amount + this.getSum(true) > this.max) {
+          if ((msg.amount as number) + this.getSum(true) > this.max) {
             console.log(msg, this);
             throw new Error("Amount would bring total over max");
           }
           const trans: Transaction = {
-            amount: msg.amount
+            amount: msg.amount as number
           };
           if (msg.condition) {
             trans.condition = msg.condition;
@@ -94,7 +96,7 @@ export class SimplexWatcher {
           // CHECK 3: only commit a transaction with expiresAt if that time hasn't passed yet
           if (
             this.entries[msg.transId].trans.expiresAt &&
-            expired(this.entries[msg.transId].trans.expiresAt, time)
+            expired(this.entries[msg.transId].trans.expiresAt as Date, time)
           ) {
             return;
           }
