@@ -1,6 +1,6 @@
 {
   "name": "snap-checker",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Synchronized Network Accounting Protocol",
   "files": [
     "src",
