@@ -26,7 +26,7 @@ export function checkStateTransitionIsValid(msg: StateTransition): void {
   const requiredFields = {
     [SnapTransactionState.Proposing]: ["amount"]
   };
-  requiredFields[msg.newState].forEach((requiredField: string) => {
+  requiredFields[msg.newState]?.forEach((requiredField: string) => {
     if (typeof msg[requiredField] === "undefined") {
       throw new Error(
         `If msg.newState is ${snapTransactionStateToString(
@@ -40,7 +40,7 @@ export function checkStateTransitionIsValid(msg: StateTransition): void {
     [SnapTransactionState.Proposing]: ["amount", "condition", "expiresAt"],
     [SnapTransactionState.Accepting]: ["preimage"]
   };
-  disallowedFields[msg.newState].forEach((disallowedField: string) => {
+  disallowedFields[msg.newState]?.forEach((disallowedField: string) => {
     if (typeof msg[disallowedField] !== "undefined") {
       throw new Error(
         `If msg.newState is ${snapTransactionStateToString(
