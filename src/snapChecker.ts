@@ -1,5 +1,5 @@
 import { ChannelWatcher } from "./channelWatcher";
-import { StateTransition } from "./snapTransaction";
+import { StateTransition } from "./SnapTransaction";
 
 export type SnapMessageLogEntry = {
   stateTransition?: StateTransition;

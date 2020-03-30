@@ -1,5 +1,5 @@
 import { SimplexWatcher } from "./simplexWatcher";
-import { SnapTransactionState, StateTransition } from "./snapTransaction";
+import { SnapTransactionState, StateTransition } from "./SnapTransaction";
 
 const proposerMessageTypes = [
   SnapTransactionState.Proposing,

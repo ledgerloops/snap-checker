@@ -1,9 +1,6 @@
 import { sha256 } from "hashlocks";
 import { SnapChecker } from "../src/SnapChecker";
-import { SnapTransactionState, StateTransition } from "../src/snapTransaction";
-
-export { SnapChecker } from "../src/SnapChecker";
-export { SnapTransactionState, StateTransition } from "../src/snapTransaction";
+import { SnapTransactionState, StateTransition } from "../src/SnapTransaction";
 
 const preimage = "bla";
 const condition: string = sha256(preimage);

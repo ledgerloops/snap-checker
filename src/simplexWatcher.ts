@@ -3,7 +3,7 @@ import {
   SnapTransactionState,
   Transaction,
   StateTransition
-} from "./snapTransaction";
+} from "./SnapTransaction";
 
 function expired(expiresAt: Date, sentAt: Date): boolean {
   return expiresAt > sentAt;
