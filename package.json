@@ -6,7 +6,8 @@
     "src",
     "lib"
   ],
-  "main": "src/index.ts",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "scripts": {
     "build": "babel src -d lib --source-maps --extensions \".ts\"",
     "coverage": "jest --collect-coverage",
