@@ -37,8 +37,32 @@ export function checkStateTransitionIsValid(msg: StateTransition): void {
   });
 
   const disallowedFields = {
-    [SnapTransactionState.Proposing]: ["amount", "condition", "expiresAt"],
-    [SnapTransactionState.Accepting]: ["preimage"]
+    [SnapTransactionState.Proposing]: ["preimage"],
+    [SnapTransactionState.Proposed]: [
+      "amount",
+      "condition",
+      "expiresAt",
+      "preimage"
+    ],
+    [SnapTransactionState.Accepting]: ["amount", "condition", "expiresAt"],
+    [SnapTransactionState.Accepted]: [
+      "amount",
+      "condition",
+      "expiresAt",
+      "preimage"
+    ],
+    [SnapTransactionState.Rejecting]: [
+      "amount",
+      "condition",
+      "expiresAt",
+      "preimage"
+    ],
+    [SnapTransactionState.Rejected]: [
+      "amount",
+      "condition",
+      "expiresAt",
+      "preimage"
+    ]
   };
   disallowedFields[msg.newState]?.forEach((disallowedField: string) => {
     if (typeof msg[disallowedField] !== "undefined") {

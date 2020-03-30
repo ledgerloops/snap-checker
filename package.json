@@ -2,10 +2,6 @@
   "name": "snap-checker",
   "version": "1.4.3",
   "description": "Synchronized Network Accounting Protocol",
-  "files": [
-    "src",
-    "lib"
-  ],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "scripts": {
