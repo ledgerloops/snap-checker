@@ -1,2 +1,6 @@
 export { SnapChecker } from "./SnapChecker";
-export { SnapTransactionState, StateTransition } from "./SnapTransaction";
+export {
+  SnapTransactionState,
+  StateTransition,
+  checkStateTransitionIsValid
+} from "./SnapTransaction";

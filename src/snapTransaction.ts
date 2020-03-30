@@ -7,19 +7,49 @@ export enum SnapTransactionState {
   Rejected
 }
 
-// VALID combinations:
-// transId, newState=Proposing, amount, unit.
-// transId, newState=Proposing, amount, unit, condition.
-// transId, newState=Proposing, amount, unit, expiresAt.
-// transId, newState=Proposing, amount, unit, condition, expiresAt.
-// transId, newState=Proposed.
+function snapTransactionStateToString(
+  snapTransactionState: SnapTransactionState
+): string {
+  const names = {
+    [SnapTransactionState.Proposing]: "[Proposing]",
+    [SnapTransactionState.Proposed]: "[Proposed]",
+    [SnapTransactionState.Accepting]: "[Accepting]",
+    [SnapTransactionState.Accepted]: "[Accepted]",
+    [SnapTransactionState.Rejecting]: "[Rejecting]",
+    [SnapTransactionState.Rejected]: "[Rejected]"
+  };
+  return names[snapTransactionState];
+}
 
-// transId, newState=Accepting. (if the Propose did not have a condition).
-// transId, newState=Accepting, preimage. (if the Propose did have a condition).
-// transId, newState=Accepted.
+export function checkStateTransitionIsValid(msg: StateTransition): void {
+  // Note that transId and newState are also required at the TypeScript level.
+  const requiredFields = {
+    [SnapTransactionState.Proposing]: ["amount"]
+  };
+  requiredFields[msg.newState].forEach((requiredField: string) => {
+    if (typeof msg[requiredField] === "undefined") {
+      throw new Error(
+        `If msg.newState is ${snapTransactionStateToString(
+          msg.newState
+        )} then ${requiredField} is required.`
+      );
+    }
+  });
 
-// transId, newState=Rejecting.
-// transId, newState=Rejected.
+  const disallowedFields = {
+    [SnapTransactionState.Proposing]: ["amount", "condition", "expiresAt"],
+    [SnapTransactionState.Accepting]: ["preimage"]
+  };
+  disallowedFields[msg.newState].forEach((disallowedField: string) => {
+    if (typeof msg[disallowedField] !== "undefined") {
+      throw new Error(
+        `If msg.newState is ${snapTransactionStateToString(
+          msg.newState
+        )} then ${disallowedField} is disallowed.`
+      );
+    }
+  });
+}
 
 export type StateTransition = {
   transId: number;
