@@ -7,7 +7,10 @@ export enum SnapTransactionState {
   Rejected
 }
 
-function snapTransactionStateToString(
+/**
+ * @internal
+ */
+export function snapTransactionStateToString(
   snapTransactionState: SnapTransactionState
 ): string {
   const names = {

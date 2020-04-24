@@ -7,6 +7,9 @@ const proposerMessageTypes = [
   SnapTransactionState.Rejected
 ];
 
+/**
+ * Watches a duplex channel.
+ */
 export class ChannelWatcher {
   us: SimplexWatcher;
   them: SimplexWatcher;

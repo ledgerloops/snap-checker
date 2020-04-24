@@ -16,6 +16,9 @@ export type LedgerEntry = {
   time: Date;
 };
 
+/**
+ * Watches a simplex channel.
+ */
 export class SimplexWatcher {
   entries: LedgerEntry[];
   start: number;
