@@ -7,7 +7,7 @@ NPM package: [snap-checker](https://www.npmjs.com/package/snap-checker)
 
 An implementation of the [Synchronized Network Accounting Protocol (SNAP)](http://michielbdejong.com/blog/20.html).
 
-Usage: see [example](https://github.com/ledgerloops/snap/blob/master/examples/basic.ts)
+Usage: see [example](https://github.com/ledgerloops/snap/blob/master/examples/index.ts)
 
 The most basic unit is the Transaction:
 
